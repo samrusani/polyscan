@@ -6,3 +6,4 @@ pytest
 streamlit
 plotly
 kaleido
+websockets

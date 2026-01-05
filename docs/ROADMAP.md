@@ -31,3 +31,5 @@
 - Added a basic backtest harness for offline signal evaluation.
 - Added richer backtest outputs (PnL simulation and trade logs).
 - Added backtest equity plotting (PNG/HTML) and a dashboard backtest tab.
+- Added backtest fees/slippage modeling, multi-token support, and parameter sweeps.
+- Added a live tick recorder script for backtest data capture.

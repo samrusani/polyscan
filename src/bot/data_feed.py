@@ -1,7 +1,10 @@
 import logging
 import asyncio
 import json
-import websockets
+try:
+    import websockets
+except ImportError:
+    websockets = None
 from typing import List, Callable, Dict, Any, Optional
 from datetime import datetime
 
@@ -37,6 +40,8 @@ class DataFeed:
         self.callbacks.append(callback)
 
     async def _connect_and_listen(self):
+        if websockets is None:
+            raise RuntimeError("websockets is required for live data feed. Install it via requirements.txt.")
         while self.running:
             try:
                 async with websockets.connect(self.WS_URL) as ws:

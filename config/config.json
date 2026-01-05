@@ -56,7 +56,11 @@
   "backtest": {
     "position_size": 10,
     "price_mode": "mid",
-    "close_at_end": true
+    "close_at_end": true,
+    "fee_bps": 0.0,
+    "slippage_bps": 0.0,
+    "slippage_ticks": 0.0,
+    "trade_history_limit": 100
   },
   "execution": {
     "order_size_shares": 10,

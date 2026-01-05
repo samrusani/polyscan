@@ -31,9 +31,19 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
    `streamlit run dashboard.py`
 6. Backtest (offline):
    `python main_backtest.py --data backtest_sample.json --token-id tokenA --trades-out backtest_trades.json --trades-csv backtest_trades.csv --equity-out backtest_equity.csv`
-7. Plot equity curve:
+6a. Record live ticks:
+   `python scripts/record_ticks.py --watchlist data/watchlist.json --duration-sec 300 --out backtest_ticks.json`
+6b. Backtest recorded ticks:
+   `python main_backtest.py --data backtest_ticks.json --infer-tokens --equity-out backtest_equity.csv`
+7. Backtest (multi-token):
+   `python main_backtest.py --data backtest_sample.json --tokens tokenA,tokenB --equity-out backtest_equity.csv`
+   - Use `--infer-tokens` to auto-detect token IDs from the tick file.
+   - Offline backtests do not require the live websocket dependency.
+8. Backtest sweep:
+   `python main_backtest.py --data backtest_sample.json --token-id tokenA --sweep backtest_sweep.example.json --sweep-out backtest_sweep.csv`
+9. Plot equity curve:
    `python scripts/plot_backtest.py --equity-csv backtest_equity.csv --out backtest_equity.png`
-8. (Optional) Render interactive equity HTML:
+10. (Optional) Render interactive equity HTML:
    `python scripts/plot_backtest.py --equity-csv backtest_equity.csv --html-out backtest_equity.html`
 
 ## Configuration
@@ -67,7 +77,20 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 - `backtest.position_size`: size used for simulated positions.
 - `backtest.price_mode`: `mid` (default) or `conservative` (bid/ask).
 - `backtest.close_at_end`: close any open position on the final tick.
+- `backtest.fee_bps`: per-fill fee in basis points.
+- `backtest.slippage_bps`: per-fill slippage in basis points.
+- `backtest.slippage_ticks`: per-fill slippage in ticks.
+- `backtest.trade_history_limit`: cap on stored trades for fair-value windows.
 - Backtests apply `strategy.min_edge_to_trade` gating.
+Multi-token data can include:
+- `orderbooks`: list of `{token_id, book}` entries per tick.
+- `trades`: list of `{token_id, price, size}` entries per tick.
+Recorded tick files use `orderbooks` + `trades` at a snapshot interval.
+
+## Parameter Sweeps
+- Sweep files are JSON objects mapping dot-path config keys to lists.
+- Example: `backtest_sweep.example.json`.
+- Use `--max-runs` to cap large grids.
 
 ## Alert Controls
 - `alerts.enable`: turn alerts on/off.
@@ -88,6 +111,9 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 - `backtest_equity.csv`: optional equity curve output from `main_backtest.py`
 - `backtest_equity.png`: optional equity curve image from `scripts/plot_backtest.py`
 - `backtest_equity.html`: optional equity curve HTML from `scripts/plot_backtest.py`
+- `backtest_sweep.csv`: optional parameter sweep results from `main_backtest.py`
+- `backtest_sweep.example.json`: example sweep grid input
+- `backtest_ticks.json`: recorded live ticks for backtesting
 
 ## Risk Handling
 - Daily loss limit halts trading and cancels open orders.

@@ -40,3 +40,6 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.4.4 - Added equity curve output and CSV export for backtests.
 - v0.4.5 - Added equity curve plot script and kaleido dependency for image export.
 - v0.4.6 - Added HTML equity plot support and a dashboard backtest tab.
+- v0.4.7 - Added backtest fees/slippage modeling, multi-token runs, and parameter sweeps.
+- v0.4.8 - Made websockets import optional so offline backtests run without live deps.
+- v0.4.9 - Added a tick recorder script and documented tick capture workflow.

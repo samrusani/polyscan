@@ -1,0 +1,6 @@
+{
+  "strategy.epsilon": [0.01, 0.02],
+  "strategy.min_edge_to_trade": [0.01, 0.02],
+  "backtest.fee_bps": [0.0, 5.0],
+  "backtest.slippage_bps": [0.0, 2.0]
+}

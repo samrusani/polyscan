@@ -50,6 +50,23 @@ Run a simple signal backtest against recorded ticks:
 ```bash
 python main_backtest.py --data backtest_sample.json --token-id tokenA --trades-out backtest_trades.json --trades-csv backtest_trades.csv --equity-out backtest_equity.csv
 ```
+Record live ticks for backtesting:
+```bash
+python scripts/record_ticks.py --watchlist data/watchlist.json --duration-sec 300 --out backtest_ticks.json
+```
+Then backtest the recorded file:
+```bash
+python main_backtest.py --data backtest_ticks.json --infer-tokens --equity-out backtest_equity.csv
+```
+Run a multi-token backtest:
+```bash
+python main_backtest.py --data backtest_sample.json --tokens tokenA,tokenB --equity-out backtest_equity.csv
+```
+Use `--infer-tokens` to auto-detect token IDs from the tick file.
+Run a parameter sweep:
+```bash
+python main_backtest.py --data backtest_sample.json --token-id tokenA --sweep backtest_sweep.example.json --sweep-out backtest_sweep.csv
+```
 
 Plot the equity curve:
 ```bash

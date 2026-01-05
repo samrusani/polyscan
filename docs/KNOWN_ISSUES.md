@@ -7,4 +7,7 @@
 - Signal evaluation stats use mid-price movement after a fixed delay; they do not account for actual fills or settlement outcomes.
 - Live open-order cache may drift if the CLOB API is unavailable during refresh; the next successful refresh will correct it.
 - Live order retries are not idempotent; if a request succeeds but the response is lost, a retry can create a duplicate order.
-- Backtest PnL ignores fees, slippage, and partial fills; results are directional only.
+- Backtest PnL ignores partial fills and settlement outcomes; results are directional only.
+- Backtest fees/slippage are simplified (bps + ticks) and do not model depth, maker/taker tiers, or partial fills.
+- Multi-token backtests assume synchronized ticks; mismatched feeds can skew equity timing.
+- Recorded ticks are snapshots at an interval and may miss intra-interval book changes.
