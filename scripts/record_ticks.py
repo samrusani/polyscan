@@ -3,9 +3,15 @@ import asyncio
 import json
 import os
 import signal
+import sys
 import time
 from datetime import datetime
 from typing import Dict, List
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
 
 from src.bot.data_feed import DataFeed
 

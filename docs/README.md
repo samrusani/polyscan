@@ -114,6 +114,7 @@ Recorded tick files use `orderbooks` + `trades` at a snapshot interval.
 - `backtest_sweep.csv`: optional parameter sweep results from `main_backtest.py`
 - `backtest_sweep.example.json`: example sweep grid input
 - `backtest_ticks.json`: recorded live ticks for backtesting
+Note: backtest output artifacts are gitignored by default; keep them local.
 
 ## Risk Handling
 - Daily loss limit halts trading and cancels open orders.

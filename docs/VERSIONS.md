@@ -43,3 +43,5 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.4.7 - Added backtest fees/slippage modeling, multi-token runs, and parameter sweeps.
 - v0.4.8 - Made websockets import optional so offline backtests run without live deps.
 - v0.4.9 - Added a tick recorder script and documented tick capture workflow.
+- v0.5.0 - Fixed tick recorder to resolve project imports when run as a script.
+- v0.5.1 - Gitignored local backtest output artifacts and documented local-only outputs.
