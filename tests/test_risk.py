@@ -55,3 +55,16 @@ def test_limit_breaches_reported():
     halt_all, market_breaches = risk.get_limit_breaches()
     assert halt_all is True
     assert "tokA" in market_breaches
+
+
+def test_market_throttle_blocks_rapid_orders():
+    config = DummyConfig({
+        "daily_max_loss_usd": 50.0,
+        "market_max_loss_usd": 10.0,
+        "max_total_inventory": 100,
+        "cooldown_after_flip_sec": 0,
+        "market_order_throttle_sec": 60
+    })
+    risk = RiskEngine(config)
+    risk.record_order("tokA")
+    assert risk.check_new_order("tokA", "BUY", 1, 0.5) is False

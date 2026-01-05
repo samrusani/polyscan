@@ -8,6 +8,7 @@ from datetime import datetime
 
 from src.infra.config import load_config
 from src.infra.logger import setup_logger
+from src.infra.alerts import AlertManager
 from src.bot.data_feed import DataFeed
 from src.bot.strategy import Strategy
 from src.bot.risk import RiskEngine
@@ -117,6 +118,7 @@ async def main():
     feed = DataFeed(all_token_ids)
     strategy = Strategy(config, feed)
     risk = RiskEngine(config)
+    alert_manager = AlertManager(config._data.get("alerts", {}), logger=logger)
     blocked_tokens = set()
     signal_stats = {
         "total": 0,
@@ -223,6 +225,10 @@ async def main():
             for tid, data in pnl_data.items():
                 risk.update_pnl(tid, data["realized"], data["unrealized"])
 
+            total_pnl = sum(d["total"] for d in pnl_data.values())
+            alert_manager.alert_pnl(total_pnl)
+
+            previous_blocked = set(blocked_tokens)
             halted, blocked_tokens = apply_risk_limits(
                 risk,
                 executor,
@@ -233,7 +239,12 @@ async def main():
                 blocked_tokens
             )
             if halted:
+                alert_manager.alert_risk("Daily loss limit breached; trading halted.")
                 break
+
+            newly_blocked = blocked_tokens - previous_blocked
+            for tid in newly_blocked:
+                alert_manager.alert_risk(f"Market loss limit breached for {tid}.")
             
             # 3. Strategy Validation (evaluate prior signals)
             eval_window_sec = config.strategy.get("evaluation_window_sec", 60)
@@ -312,10 +323,10 @@ async def main():
                 elif signal == "BUY_NO":
                     target_token = no_id
                 else:
-                     # Neutral. Cancel orders?
-                     executor.cancel_all(yes_id)
-                     executor.cancel_all(no_id)
-                     continue
+                    # Neutral. Cancel orders?
+                    executor.cancel_all(yes_id)
+                    executor.cancel_all(no_id)
+                    continue
 
                 # Prepare Quote
                 # We want to Buy Target Token. 
@@ -478,6 +489,8 @@ async def main():
                         },
                         "live_order_cache": order_cache_state
                     }
+
+                    alert_manager.alert_stale(last_live_poll, live_poll_interval)
                     
                     with open("data/live_state.json", "w") as f:
                         json.dump(state, f, indent=2)

@@ -8,6 +8,7 @@ from py_clob_client.clob_types import OrderArgs
 
 from src.bot.execution import Executor, Order
 from src.bot.risk import RiskEngine
+from src.infra.retry import call_with_retries
 
 logger = logging.getLogger("bot.live")
 
@@ -28,11 +29,14 @@ class LiveExecutor(Executor):
             raise ValueError("CLOB_API_KEY not found in env for Live Trading")
             
         self.client = ClobClient("https://clob.polymarket.com", key=key, chain_id=chain_id)
+        self._retry_attempts = int(self.config.get("execution", {}).get("order_retry_attempts", 3))
+        self._retry_backoff = float(self.config.get("execution", {}).get("order_retry_backoff_sec", 1))
         
     def place_order(self, token_id: str, side: str, price: float, size: float) -> Optional[Order]:
         if not self.risk_engine.check_new_order(token_id, side, size, price):
             logger.warning("Live Order rejected by Risk Engine")
             return None
+        self.risk_engine.record_order(token_id)
             
         try:
             # Place Order
@@ -40,14 +44,16 @@ class LiveExecutor(Executor):
             # py-clob-client uses string "BUY" or "SELL" for side in OrderArgs
             clob_side = "BUY" if side.upper() == "BUY" else "SELL"
             
-            resp = self.client.create_and_post_order(
-                OrderArgs(
-                    price=price,
-                    size=size,
-                    side=clob_side,
-                    token_id=token_id
+            def _place():
+                return self.client.create_and_post_order(
+                    OrderArgs(
+                        price=price,
+                        size=size,
+                        side=clob_side,
+                        token_id=token_id
+                    )
                 )
-            )
+            resp = call_with_retries(_place, self._retry_attempts, self._retry_backoff)
             # Response handling relies on client version. Assuming it returns order ID or obj.
             order_id = resp.get("orderID") or resp.get("id")
             if not order_id:
@@ -74,7 +80,9 @@ class LiveExecutor(Executor):
 
     def cancel_order(self, order_id: str) -> bool:
         try:
-            self.client.cancel(order_id)
+            def _cancel():
+                return self.client.cancel(order_id)
+            call_with_retries(_cancel, self._retry_attempts, self._retry_backoff)
             logger.info(f"[LIVE] Canceled {order_id}")
             if order_id in self._order_cache:
                 self._order_cache[order_id].status = "CANCELED"
@@ -85,7 +93,9 @@ class LiveExecutor(Executor):
 
     def cancel_all(self, token_id: str):
          try:
-             self.client.cancel_all(token_id=token_id)
+             def _cancel_all():
+                 return self.client.cancel_all(token_id=token_id)
+             call_with_retries(_cancel_all, self._retry_attempts, self._retry_backoff)
              logger.info(f"[LIVE] Canceled all for {token_id}")
              for order in self._order_cache.values():
                  if order.token_id == token_id and order.status == "OPEN":
@@ -105,7 +115,9 @@ class LiveExecutor(Executor):
 
         # Fetch actual open orders
         try:
-            orders = self.client.get_open_orders(token_id=token_id)
+            def _fetch():
+                return self.client.get_open_orders(token_id=token_id)
+            orders = call_with_retries(_fetch, self._retry_attempts, self._retry_backoff)
             # Map to Order objects
             res = []
             for o in orders:
@@ -134,7 +146,9 @@ class LiveExecutor(Executor):
 
         for token_id in token_ids:
             try:
-                orders = self.client.get_open_orders(token_id=token_id)
+                def _fetch():
+                    return self.client.get_open_orders(token_id=token_id)
+                orders = call_with_retries(_fetch, self._retry_attempts, self._retry_backoff)
             except Exception:
                 continue
 
@@ -156,7 +170,7 @@ class LiveExecutor(Executor):
             # Mark cached orders for this token that are no longer open
             for order in self._order_cache.values():
                 if order.token_id == token_id and order.status == "OPEN" and order.id not in live_ids:
-                    order.status = "CANCELED"
+                    order.status = "CLOSED"
 
     def get_cached_open_orders(self) -> List[Order]:
         return [o for o in self._order_cache.values() if o.status == "OPEN"]
@@ -211,6 +225,9 @@ class LiveExecutor(Executor):
             self._seen_fill_ids.add(fingerprint)
             if timestamp and timestamp > self._last_fill_ts:
                 self._last_fill_ts = timestamp
+            order_id = fill.get("order_id")
+            if order_id and order_id in self._order_cache:
+                self._order_cache[order_id].status = "FILLED"
 
         # Avoid unbounded growth
         if len(self._seen_fill_ids) > 5000:

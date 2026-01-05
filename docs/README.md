@@ -14,7 +14,8 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 ## System Overview
 - Scanner pipeline: Gamma API -> filter -> CLOB order book metrics -> ranked watchlist (`data/watchlist.json`) with explicit `yes_token_id`/`no_token_id`.
 - Bot pipeline: watchlist -> websocket feed -> strategy -> risk checks -> executor -> portfolio -> live state export (`data/live_state.json`).
-- Dashboard: Streamlit app reading `data/live_state.json` for PnL, positions, orders, market snapshots, and strategy stats.
+- Dashboard: Streamlit app reading `data/live_state.json` for PnL, positions, orders, market snapshots, strategy stats, and backtest equity.
+- Backtest: offline runner replays tick data to evaluate strategy signals.
 
 ## Runbook
 1. Install dependencies:
@@ -28,13 +29,19 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
    `python main_bot.py`
 5. Dashboard:
    `streamlit run dashboard.py`
+6. Backtest (offline):
+   `python main_backtest.py --data backtest_sample.json --token-id tokenA --trades-out backtest_trades.json --trades-csv backtest_trades.csv --equity-out backtest_equity.csv`
+7. Plot equity curve:
+   `python scripts/plot_backtest.py --equity-csv backtest_equity.csv --out backtest_equity.png`
+8. (Optional) Render interactive equity HTML:
+   `python scripts/plot_backtest.py --equity-csv backtest_equity.csv --html-out backtest_equity.html`
 
 ## Configuration
 - `config/config.json`
   - `asset_filter`: market discovery filters
   - `scanner`: ranking and selection filters (weights, recent trades, volatility, time-to-settlement)
   - `strategy`: signal and quote parameters (tick size, aggression, taker mode)
-  - `risk`: loss limits and inventory caps
+  - `risk`: loss limits, inventory caps, and per-market throttle
   - `execution`: order sizing and slippage settings
 - Live trading requires environment variables (see `.env.example` and root README).
 
@@ -53,12 +60,34 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 - `live_fill_poll_interval_sec`: how often to poll live fills for reconciliation.
 - `live_order_cache_enabled`: keep a local cache of live open orders.
 - `live_order_cache_refresh_sec`: periodic refresh interval for the live order cache.
+- `order_retry_attempts`: retry count for live order API calls.
+- `order_retry_backoff_sec`: base backoff seconds between retries.
+
+## Backtest Controls
+- `backtest.position_size`: size used for simulated positions.
+- `backtest.price_mode`: `mid` (default) or `conservative` (bid/ask).
+- `backtest.close_at_end`: close any open position on the final tick.
+- Backtests apply `strategy.min_edge_to_trade` gating.
+
+## Alert Controls
+- `alerts.enable`: turn alerts on/off.
+- `alerts.mode`: `log` (local logs) or `webhook` (HTTP POST).
+- `alerts.webhook_url`: destination for alert payloads.
+- `alerts.min_interval_sec`: minimum time between alerts.
+- `alerts.pnl_alert_threshold_usd`: total PnL threshold for alerts.
+- `alerts.stale_recon_multiplier`: multiplier on poll interval before stale alert.
 
 ## Data Artifacts
 - `data/watchlist.json`: output from scanner (includes `yes_token_id`/`no_token_id`)
 - `data/live_state.json`: runtime state for dashboard
 - `data/session_*.csv`: session trade exports
 - `logs/bot.jsonl`: structured logs
+- `backtest_sample.json`: sample tick data format for offline backtests
+- `backtest_trades.json`: optional trade log output from `main_backtest.py`
+- `backtest_trades.csv`: optional trade log CSV output from `main_backtest.py`
+- `backtest_equity.csv`: optional equity curve output from `main_backtest.py`
+- `backtest_equity.png`: optional equity curve image from `scripts/plot_backtest.py`
+- `backtest_equity.html`: optional equity curve HTML from `scripts/plot_backtest.py`
 
 ## Risk Handling
 - Daily loss limit halts trading and cancels open orders.
@@ -67,6 +96,10 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 - Dashboard shows last live poll and fill timestamps for reconciliation health.
 - Dashboard shows last order-cache refresh and cache size in live mode.
 - Dashboard banners warn when reconciliation or order-cache refresh is stale.
+- Per-market order throttling limits how frequently orders can be placed for a token.
+
+## Alerts
+- Optional alerts for risk breaches, PnL thresholds, and stale reconciliation.
 
 ## Reference Docs
 - Roadmap: `docs/ROADMAP.md`

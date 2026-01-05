@@ -45,6 +45,21 @@ python main_bot.py
 python main_bot.py
 ```
 
+### Backtest (Offline)
+Run a simple signal backtest against recorded ticks:
+```bash
+python main_backtest.py --data backtest_sample.json --token-id tokenA --trades-out backtest_trades.json --trades-csv backtest_trades.csv --equity-out backtest_equity.csv
+```
+
+Plot the equity curve:
+```bash
+python scripts/plot_backtest.py --equity-csv backtest_equity.csv --out backtest_equity.png
+```
+Render an interactive HTML plot:
+```bash
+python scripts/plot_backtest.py --equity-csv backtest_equity.csv --html-out backtest_equity.html
+```
+
 ## Structure
 - `src/scanner`: Market discovery and ranking
 - `src/bot`: Trading logic, signals, risk engine, execution

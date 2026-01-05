@@ -6,3 +6,5 @@
 - Recent trade and volatility metrics depend on the CLOB trade endpoint; if unavailable, those fields remain unset and trade-based filters are skipped.
 - Signal evaluation stats use mid-price movement after a fixed delay; they do not account for actual fills or settlement outcomes.
 - Live open-order cache may drift if the CLOB API is unavailable during refresh; the next successful refresh will correct it.
+- Live order retries are not idempotent; if a request succeeds but the response is lost, a retry can create a duplicate order.
+- Backtest PnL ignores fees, slippage, and partial fills; results are directional only.

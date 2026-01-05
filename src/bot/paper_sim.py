@@ -19,6 +19,7 @@ class PaperExecutor(Executor):
         if not self.risk_engine.check_new_order(token_id, side, size, price):
             logger.warning("Order rejected by Risk Engine")
             return None
+        self.risk_engine.record_order(token_id)
             
         order_id = str(uuid.uuid4())
         order = Order(

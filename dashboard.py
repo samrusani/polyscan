@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import time
+import os
 from datetime import datetime
 import plotly.express as px
 
@@ -81,8 +82,8 @@ def main():
             st.warning(f"Order cache refresh is stale: {cache_age:.1f}s since last refresh.")
 
     # Tabs
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-        ["📊 Positions", "⏳ Open Orders", "📈 Market", "🧪 Strategy", "📜 Trades", "🔍 Raw Data"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+        ["📊 Positions", "⏳ Open Orders", "📈 Market", "🧪 Strategy", "📉 Backtest", "📜 Trades", "🔍 Raw Data"]
     )
 
     with tab1:
@@ -207,6 +208,25 @@ def main():
                 st.metric("Order Cache Size", cache_size)
 
     with tab5:
+        st.subheader("Backtest Equity")
+        default_path = "backtest_equity.csv"
+        path = st.text_input("Equity CSV Path", value=default_path)
+        if not path:
+            st.info("Provide a CSV path to display equity.")
+        elif not os.path.exists(path):
+            st.info("Equity CSV not found.")
+        else:
+            try:
+                df_equity = pd.read_csv(path)
+                if "equity" in df_equity.columns:
+                    st.line_chart(df_equity.set_index("timestamp")["equity"])
+                    st.dataframe(df_equity.tail(50))
+                else:
+                    st.warning("Equity CSV missing 'equity' column.")
+            except Exception as e:
+                st.error(f"Failed to read equity CSV: {e}")
+
+    with tab6:
         st.subheader("Trade History")
         trades = state.get("recent_trades", [])
         if trades:
@@ -217,7 +237,7 @@ def main():
         else:
             st.info("No trades executed yet.")
 
-    with tab6:
+    with tab7:
         st.json(state)
 
     # Auto-refresh logic (Moved to end to allow rendering first)

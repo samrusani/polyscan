@@ -28,3 +28,15 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.3.2 - Added live order cache refresh indicators to the dashboard and state.
 - v0.3.3 - Switched order cache refresh indicator to seconds-ago display.
 - v0.3.4 - Added dashboard staleness banners for live reconciliation and order-cache refresh.
+- v0.3.5 - Added per-market order throttling with risk gating and tests.
+- v0.3.6 - Added webhook alerting for risk, PnL thresholds, and stale reconciliation.
+- v0.3.7 - Added per-market risk alerts on loss limit blocks.
+- v0.3.8 - Added log-only alert mode and documented Slack webhook payloads on the roadmap.
+- v0.3.9 - Added live execution retry helper, config knobs, reconciliation updates, and retry tests.
+- v0.4.0 - Fixed indentation error in main bot loop that broke test collection.
+- v0.4.1 - Added basic backtest harness, sample data, and runner entrypoint.
+- v0.4.2 - Added backtest parser/runner tests and documented offline workflow.
+- v0.4.3 - Added backtest PnL/trade logs, new backtest config, and updated docs/tests.
+- v0.4.4 - Added equity curve output and CSV export for backtests.
+- v0.4.5 - Added equity curve plot script and kaleido dependency for image export.
+- v0.4.6 - Added HTML equity plot support and a dashboard backtest tab.

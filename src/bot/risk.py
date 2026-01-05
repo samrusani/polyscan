@@ -14,6 +14,7 @@ class RiskEngine:
         self.open_orders_count = 0
         self.market_pnl: Dict[str, float] = {}
         self.last_flatten_time: Dict[str, datetime] = {}
+        self.last_order_time: Dict[str, datetime] = {}
         
     def check_new_order(self, token_id: str, side: str, qty: float, price: float) -> bool:
         # Check Daily Loss
@@ -51,7 +52,18 @@ class RiskEngine:
                  logger.warning("Risk Reject: Cooldown active")
                  return False
 
+        # Check per-market order throttle
+        throttle_sec = self.config.get("market_order_throttle_sec", 0)
+        last_order = self.last_order_time.get(token_id)
+        if last_order and throttle_sec > 0:
+            if (datetime.utcnow() - last_order).total_seconds() < throttle_sec:
+                logger.warning("Risk Reject: Order throttle active")
+                return False
+
         return True
+
+    def record_order(self, token_id: str):
+        self.last_order_time[token_id] = datetime.utcnow()
 
     def update_fill(self, token_id: str, side: str, qty: float, price: float):
         current_inv = self.inventory.get(token_id, 0)

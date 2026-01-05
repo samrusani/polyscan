@@ -42,11 +42,27 @@
     "stop_new_orders_before_settlement_sec": 300,
     "daily_max_loss_usd": 50.0,
     "market_max_loss_usd": 10.0,
-    "cooldown_after_flip_sec": 60
+    "cooldown_after_flip_sec": 60,
+    "market_order_throttle_sec": 2
+  },
+  "alerts": {
+    "enable": true,
+    "mode": "log",
+    "webhook_url": "",
+    "min_interval_sec": 60,
+    "pnl_alert_threshold_usd": 100.0,
+    "stale_recon_multiplier": 3
+  },
+  "backtest": {
+    "position_size": 10,
+    "price_mode": "mid",
+    "close_at_end": true
   },
   "execution": {
     "order_size_shares": 10,
     "max_slippage_ticks": 2,
+    "order_retry_attempts": 3,
+    "order_retry_backoff_sec": 1,
     "live_fill_poll_interval_sec": 5,
     "live_order_cache_enabled": true,
     "live_order_cache_refresh_sec": 30
