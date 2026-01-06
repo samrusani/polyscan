@@ -1,6 +1,9 @@
 {
-  "strategy.epsilon": [0.01, 0.02],
-  "strategy.min_edge_to_trade": [0.01, 0.02],
+  "strategy.epsilon": [0.001, 0.0025, 0.005],
+  "strategy.min_edge_to_trade": [0.0005, 0.001, 0.0025],
+  "strategy.taker_min_edge": [0.001, 0.0025, 0.005],
+  "backtest.strategy_mode": ["mid"],
+  "backtest.mid_fair_value_window": [10, 20, 40],
   "backtest.fee_bps": [0.0, 5.0],
   "backtest.slippage_bps": [0.0, 2.0]
 }

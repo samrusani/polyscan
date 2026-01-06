@@ -11,3 +11,4 @@
 - Backtest fees/slippage are simplified (bps + ticks) and do not model depth, maker/taker tiers, or partial fills.
 - Multi-token backtests assume synchronized ticks; mismatched feeds can skew equity timing.
 - Recorded ticks are snapshots at an interval and may miss intra-interval book changes.
+- Mid-price backtest mode is a heuristic and may overstate signal quality vs. trade-driven fair value.

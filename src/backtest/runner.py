@@ -161,6 +161,8 @@ def run_backtest_multi(config: Config, token_ids: Iterable[str], ticks: List[Dic
     slippage_ticks = float(backtest_cfg.get("slippage_ticks", 0.0))
     tick_size = float(strategy_cfg.get("tick_size", 0.01))
     min_edge_to_trade = strategy_cfg.get("min_edge_to_trade", 0.0)
+    strategy_mode = backtest_cfg.get("strategy_mode", "live")
+    mid_window = int(backtest_cfg.get("mid_fair_value_window", 20))
 
     token_state: Dict[str, Dict[str, Any]] = {}
     for token_id in token_list:
@@ -189,10 +191,13 @@ def run_backtest_multi(config: Config, token_ids: Iterable[str], ticks: List[Dic
         total_unrealized = 0.0
 
         for token_id in token_list:
-            details = strategy.get_signal_details(token_id)
-            signal = details["signal"]
-            edge = details.get("edge")
             state = token_state[token_id]
+            if strategy_mode == "mid":
+                signal, edge = _get_mid_signal(state, token_id, feed, mid_window, strategy_cfg)
+            else:
+                details = strategy.get_signal_details(token_id)
+                signal = details["signal"]
+                edge = details.get("edge")
 
             if signal != "NEUTRAL" and (edge is None or edge < min_edge_to_trade):
                 signal = "NEUTRAL"
@@ -413,6 +418,34 @@ def _calc_fee(price: float, size: float, fee_bps: float) -> float:
     if not fee_bps:
         return 0.0
     return abs(price * size) * fee_bps / 10000.0
+
+
+def _get_mid_signal(state: Dict[str, Any], token_id: str, feed: BacktestFeed, window: int, strategy_cfg: Dict[str, Any]) -> tuple[str, Optional[float]]:
+    orderbook = feed.get_orderbook(token_id)
+    if not orderbook or not orderbook.get("bids") or not orderbook.get("asks"):
+        return "NEUTRAL", None
+
+    best_bid = float(orderbook["bids"][0]["price"])
+    best_ask = float(orderbook["asks"][0]["price"])
+    mid = (best_bid + best_ask) / 2
+
+    history = state.setdefault("mid_history", [])
+    history.append(mid)
+    if window and len(history) > window:
+        del history[:-window]
+
+    if not history:
+        return "NEUTRAL", None
+
+    fair = sum(history) / len(history)
+    epsilon = float(strategy_cfg.get("epsilon", 0.02))
+    edge = abs(mid - fair)
+
+    if mid > fair + epsilon:
+        return "BUY_YES", edge
+    if mid < fair - epsilon:
+        return "BUY_NO", edge
+    return "NEUTRAL", edge
 
 
 def _extract_orderbooks(tick: Dict[str, Any]) -> List[tuple]:

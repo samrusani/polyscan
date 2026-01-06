@@ -81,6 +81,8 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 - `backtest.slippage_bps`: per-fill slippage in basis points.
 - `backtest.slippage_ticks`: per-fill slippage in ticks.
 - `backtest.trade_history_limit`: cap on stored trades for fair-value windows.
+- `backtest.strategy_mode`: `live` (trade-based fair value) or `mid` (mid-price window).
+- `backtest.mid_fair_value_window`: window size for mid-price fair value when using `strategy_mode=mid`.
 - Backtests apply `strategy.min_edge_to_trade` gating.
 Multi-token data can include:
 - `orderbooks`: list of `{token_id, book}` entries per tick.

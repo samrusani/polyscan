@@ -45,3 +45,8 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.4.9 - Added a tick recorder script and documented tick capture workflow.
 - v0.5.0 - Fixed tick recorder to resolve project imports when run as a script.
 - v0.5.1 - Gitignored local backtest output artifacts and documented local-only outputs.
+- v0.5.2 - Relaxed scanner filters for broader watchlists during tick recording.
+- v0.5.3 - Tightened sweep grid to lower edge thresholds for sparse-trade datasets.
+- v0.5.4 - Added backtest mid-price strategy mode for signal generation on sparse trades.
+- v0.5.5 - Updated sweep example to target mid-price backtest mode and window ranges.
+- v0.5.6 - Adjusted scanner filters to allow broader spreads for tick recording.
