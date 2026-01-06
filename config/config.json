@@ -13,6 +13,8 @@
     "recent_trades_lookback": 50,
     "recent_trades_target": 20,
     "volatility_target": 0.05,
+    "volatility_close_window_sec": 14400,
+    "volatility_close_floor": 0.25,
     "weight_spread": 0.4,
     "weight_volume": 0.1,
     "weight_depth": 0.2,

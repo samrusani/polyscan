@@ -181,6 +181,11 @@ class MarketRanker:
         volatility_score = 0.0
         if market.volatility is not None and volatility_target:
             volatility_score = min(market.volatility / volatility_target, 1.0)
+        close_window = self.scanner_config.get("volatility_close_window_sec", 0)
+        close_floor = self.scanner_config.get("volatility_close_floor", 0.0)
+        if close_window and market.time_to_settlement_sec is not None:
+            if market.time_to_settlement_sec <= close_window:
+                volatility_score = max(volatility_score, min(close_floor, 1.0))
 
         time_target = self.scanner_config.get("target_time_to_settlement_sec", 86400)
         time_score = 0.0

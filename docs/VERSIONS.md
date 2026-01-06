@@ -50,3 +50,4 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.5.4 - Added backtest mid-price strategy mode for signal generation on sparse trades.
 - v0.5.5 - Updated sweep example to target mid-price backtest mode and window ranges.
 - v0.5.6 - Adjusted scanner filters to allow broader spreads for tick recording.
+- v0.5.7 - Added near-settlement volatility score floor to avoid suppressing late movers.

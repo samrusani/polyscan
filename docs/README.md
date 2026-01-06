@@ -49,7 +49,9 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 ## Configuration
 - `config/config.json`
   - `asset_filter`: market discovery filters
-  - `scanner`: ranking and selection filters (weights, recent trades, volatility, time-to-settlement)
+- `scanner`: ranking and selection filters (weights, recent trades, volatility, time-to-settlement)
+  - `volatility_close_window_sec`: ensure volatility score floor for near-settlement markets.
+  - `volatility_close_floor`: minimum volatility score applied when inside the close window.
   - `strategy`: signal and quote parameters (tick size, aggression, taker mode)
   - `risk`: loss limits, inventory caps, and per-market throttle
   - `execution`: order sizing and slippage settings
