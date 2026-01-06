@@ -51,3 +51,9 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.5.5 - Updated sweep example to target mid-price backtest mode and window ranges.
 - v0.5.6 - Adjusted scanner filters to allow broader spreads for tick recording.
 - v0.5.7 - Added near-settlement volatility score floor to avoid suppressing late movers.
+- v0.5.8 - Added websocket timeout/backoff controls to tick recording and warned on empty captures.
+- v0.5.9 - Added websocket origin/header overrides for tick recorder handshakes.
+- v0.5.10 - Normalized websocket header parameter to support newer websockets versions.
+- v0.5.11 - Added HTTP fallback tick recorder with CLOB polling and trade dedupe.
+- v0.5.12 - Added trade probe filtering for tick recording to focus on active tokens.
+- v0.5.13 - Added orderbook-activity probe to filter tokens by mid-price movement.

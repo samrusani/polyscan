@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import json
+import inspect
 try:
     import websockets
 except ImportError:
@@ -13,13 +14,21 @@ logger = logging.getLogger("bot.data_feed")
 class DataFeed:
     WS_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
 
-    def __init__(self, token_ids: List[str]):
+    def __init__(
+        self,
+        token_ids: List[str],
+        connect_kwargs: Optional[Dict[str, Any]] = None,
+        backoff_sec: float = 5.0
+    ):
         self.token_ids = token_ids
         self.callbacks: List[Callable[[Dict], None]] = []
         self.running = False
         self.orderbooks: Dict[str, Dict] = {} # token_id -> {bids: [], asks: []}
         self.trades: Dict[str, List] = {t: [] for t in token_ids}
         self._task = None
+        self.connect_kwargs = connect_kwargs or {}
+        self.backoff_sec = backoff_sec
+        self._header_param = self._resolve_header_param()
 
     async def start(self):
         self.running = True
@@ -44,7 +53,13 @@ class DataFeed:
             raise RuntimeError("websockets is required for live data feed. Install it via requirements.txt.")
         while self.running:
             try:
-                async with websockets.connect(self.WS_URL) as ws:
+                connect_kwargs = dict(self.connect_kwargs)
+                if self._header_param:
+                    if "extra_headers" in connect_kwargs and self._header_param != "extra_headers":
+                        connect_kwargs[self._header_param] = connect_kwargs.pop("extra_headers")
+                    if "additional_headers" in connect_kwargs and self._header_param != "additional_headers":
+                        connect_kwargs[self._header_param] = connect_kwargs.pop("additional_headers")
+                async with websockets.connect(self.WS_URL, **connect_kwargs) as ws:
                     logger.info(f"Connected to {self.WS_URL}")
                     
                     # Subscribe
@@ -62,7 +77,21 @@ class DataFeed:
                         
             except Exception as e:
                 logger.error(f"WS Error: {e}")
-                await asyncio.sleep(5) # Backoff
+                await asyncio.sleep(self.backoff_sec) # Backoff
+
+    @staticmethod
+    def _resolve_header_param() -> Optional[str]:
+        if websockets is None:
+            return None
+        try:
+            params = inspect.signature(websockets.connect).parameters
+        except (TypeError, ValueError):
+            return None
+        if "additional_headers" in params:
+            return "additional_headers"
+        if "extra_headers" in params:
+            return "extra_headers"
+        return None
 
     def _handle_message(self, data: List[Dict] | Dict):
         # Data might be a list of events or single event

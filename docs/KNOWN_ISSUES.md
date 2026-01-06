@@ -11,4 +11,8 @@
 - Backtest fees/slippage are simplified (bps + ticks) and do not model depth, maker/taker tiers, or partial fills.
 - Multi-token backtests assume synchronized ticks; mismatched feeds can skew equity timing.
 - Recorded ticks are snapshots at an interval and may miss intra-interval book changes.
+- Websocket handshake timeouts can result in empty tick files; increase `--ws-open-timeout`, reduce markets, or set `--ws-origin` and `--ws-header` to mimic browser headers.
+- HTTP fallback tick recording is slower and may hit rate limits when polling many tokens.
+- Trade probing relies on the CLOB trade endpoint and may be rate limited or return sparse data on low-activity markets.
+- Orderbook-activity probing polls orderbooks multiple times and can be slow or rate-limited on large token sets.
 - Mid-price backtest mode is a heuristic and may overstate signal quality vs. trade-driven fair value.
