@@ -15,6 +15,7 @@ if ROOT_DIR not in sys.path:
     sys.path.append(ROOT_DIR)
 
 from src.bot.data_feed import DataFeed
+from src.scanner.activity_probe import probe_orderbook_activity
 try:
     from py_clob_client.client import ClobClient
 except ImportError:
@@ -122,69 +123,6 @@ def _probe_trade_activity(token_ids: List[str], min_trades: int, lookback: int) 
     return active
 
 
-def _probe_orderbook_activity(
-    token_ids: List[str],
-    min_move: float,
-    min_changes: int,
-    samples: int,
-    interval_sec: float
-) -> tuple[List[str], Dict[str, Dict[str, float]]]:
-    if ClobClient is None:
-        raise RuntimeError("py-clob-client is required for orderbook probing.")
-    client = ClobClient("https://clob.polymarket.com")
-    mids: Dict[str, List[float]] = {token_id: [] for token_id in token_ids}
-    snapshots: Dict[str, List[Tuple[float, float, float, float]]] = {token_id: [] for token_id in token_ids}
-    for _ in range(max(samples, 1)):
-        for token_id in token_ids:
-            try:
-                ob = client.get_order_book(token_id)
-            except Exception:
-                continue
-            bids = _normalize_book_levels(getattr(ob, "bids", []) or [])
-            asks = _normalize_book_levels(getattr(ob, "asks", []) or [])
-            if not bids or not asks:
-                continue
-            best_bid = bids[0]
-            best_ask = asks[0]
-            mid = (best_bid["price"] + best_ask["price"]) / 2
-            mids[token_id].append(mid)
-            snapshots[token_id].append(
-                (best_bid["price"], best_bid["size"], best_ask["price"], best_ask["size"])
-            )
-        if interval_sec > 0:
-            time.sleep(interval_sec)
-    active: List[str] = []
-    metrics: Dict[str, Dict[str, float]] = {}
-    for token_id, values in mids.items():
-        if len(values) < 2 or len(snapshots[token_id]) < 2:
-            continue
-        mid_range = max(values) - min(values)
-        price_changes = 0
-        size_change_hits = 0
-        size_change_sum = 0.0
-        sample_list = snapshots[token_id]
-        for idx in range(1, len(sample_list)):
-            prev_bid_p, prev_bid_s, prev_ask_p, prev_ask_s = sample_list[idx - 1]
-            bid_p, bid_s, ask_p, ask_s = sample_list[idx]
-            if bid_p != prev_bid_p:
-                price_changes += 1
-            if ask_p != prev_ask_p:
-                price_changes += 1
-            size_delta = abs(bid_s - prev_bid_s) + abs(ask_s - prev_ask_s)
-            if size_delta > 0:
-                size_change_hits += 1
-                size_change_sum += size_delta
-        change_hits = price_changes + size_change_hits
-        metrics[token_id] = {
-            "mid_range": mid_range,
-            "price_changes": float(price_changes),
-            "size_change_hits": float(size_change_hits),
-            "size_change_sum": size_change_sum,
-            "samples": float(len(values))
-        }
-        if mid_range >= min_move or change_hits >= min_changes:
-            active.append(token_id)
-    return active, metrics
 
 
 def _trade_key(trade: object) -> Tuple[str, str]:
@@ -530,7 +468,7 @@ def main() -> None:
             raise SystemExit("Trade probe found no active tokens. Lower --probe-min-trades or increase --probe-lookback.")
         print(f"Probe (trades): {len(token_ids)} tokens with trades.")
     if args.probe_orderbook:
-        token_ids, moves = _probe_orderbook_activity(
+        token_ids, moves = probe_orderbook_activity(
             token_ids,
             args.probe_ob_min_move,
             args.probe_ob_min_changes,

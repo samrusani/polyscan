@@ -13,6 +13,7 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 
 ## System Overview
 - Scanner pipeline: Gamma API -> filter -> CLOB order book metrics -> ranked watchlist (`data/watchlist.json`) with explicit `yes_token_id`/`no_token_id`.
+- Active scanner pipeline: ranked candidates -> orderbook activity probe -> active watchlist (`data/active_watchlist.json`).
 - Bot pipeline: watchlist -> websocket feed -> strategy -> risk checks -> executor -> portfolio -> live state export (`data/live_state.json`).
 - Dashboard: Streamlit app reading `data/live_state.json` for PnL, positions, orders, market snapshots, strategy stats, and backtest equity.
 - Backtest: offline runner replays tick data to evaluate strategy signals.
@@ -25,6 +26,10 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 3. Run scanner:
    `python main_scanner.py`
    - Re-run the scanner after code updates to refresh watchlist schema.
+3a. Run active market scanner:
+   `python main_active_scanner.py`
+   - Uses orderbook activity probing to select the most active markets.
+   - Set `scanner.activity_output_path` to `data/watchlist.json` to use it directly with the bot.
 4. Run bot (paper mode default):
    `python main_bot.py`
 5. Dashboard:
@@ -58,6 +63,15 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 - `scanner`: ranking and selection filters (weights, recent trades, volatility, time-to-settlement)
   - `volatility_close_window_sec`: ensure volatility score floor for near-settlement markets.
   - `volatility_close_floor`: minimum volatility score applied when inside the close window.
+  - `activity_candidate_limit`: number of ranked markets to probe for activity.
+  - `activity_top_n`: number of active markets to keep after probing.
+  - `activity_sample_count`: samples per market during the activity probe.
+  - `activity_sample_interval_sec`: seconds between activity probe samples.
+  - `activity_min_mid_range`: minimum mid-range required to pass the probe.
+  - `activity_min_book_changes`: minimum top-of-book changes required to pass.
+  - `activity_price_weight`: weight on price changes for activity score.
+  - `activity_size_weight`: weight on size changes for activity score.
+  - `activity_output_path`: output path for active watchlist.
   - `strategy`: signal and quote parameters (tick size, aggression, taker mode)
   - `risk`: loss limits, inventory caps, and per-market throttle
   - `execution`: order sizing and slippage settings
@@ -112,6 +126,7 @@ Recorded tick files use `orderbooks` + `trades` at a snapshot interval.
 
 ## Data Artifacts
 - `data/watchlist.json`: output from scanner (includes `yes_token_id`/`no_token_id`)
+- `data/active_watchlist.json`: output from active market scanner
 - `data/live_state.json`: runtime state for dashboard
 - `data/session_*.csv`: session trade exports
 - `logs/bot.jsonl`: structured logs

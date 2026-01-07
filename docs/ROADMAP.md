@@ -33,3 +33,4 @@
 - Added backtest equity plotting (PNG/HTML) and a dashboard backtest tab.
 - Added backtest fees/slippage modeling, multi-token support, and parameter sweeps.
 - Added a live tick recorder script for backtest data capture.
+- Added an active market scanner with orderbook activity probing.

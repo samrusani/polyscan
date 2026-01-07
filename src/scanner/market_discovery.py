@@ -26,6 +26,12 @@ class Market:
     depth_usd: Optional[float] = None
     recent_trades: Optional[int] = None
     rank_score: Optional[float] = None
+    activity_score: Optional[float] = None
+    activity_mid_range: Optional[float] = None
+    activity_price_changes: Optional[float] = None
+    activity_size_change_hits: Optional[float] = None
+    activity_size_change_sum: Optional[float] = None
+    activity_samples: Optional[float] = None
 
 class MarketDiscovery:
     BASE_URL = "https://gamma-api.polymarket.com/events" # Gamma usually returns events which contain markets

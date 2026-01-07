@@ -29,6 +29,10 @@ Run the market scanner to generate `data/watchlist.json`:
 ```bash
 python main_scanner.py
 ```
+Run the active market scanner (orderbook activity probe) to generate `data/active_watchlist.json`:
+```bash
+python main_active_scanner.py
+```
 
 ### Bot (Paper Mode)
 Run the bot in paper trading mode:

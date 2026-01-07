@@ -20,7 +20,16 @@
     "weight_depth": 0.2,
     "weight_recent_trades": 0.1,
     "weight_volatility": 0.1,
-    "weight_time_to_settlement": 0.1
+    "weight_time_to_settlement": 0.1,
+    "activity_candidate_limit": 50,
+    "activity_top_n": 10,
+    "activity_sample_count": 5,
+    "activity_sample_interval_sec": 2,
+    "activity_min_mid_range": 0.0,
+    "activity_min_book_changes": 1,
+    "activity_price_weight": 0.01,
+    "activity_size_weight": 0.001,
+    "activity_output_path": "data/active_watchlist.json"
   },
   "strategy": {
     "fair_value_window_trades": 10,
