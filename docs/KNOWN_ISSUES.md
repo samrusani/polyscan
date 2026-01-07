@@ -15,4 +15,5 @@
 - HTTP fallback tick recording is slower and may hit rate limits when polling many tokens.
 - Trade probing relies on the CLOB trade endpoint and may be rate limited or return sparse data on low-activity markets.
 - Orderbook-activity probing polls orderbooks multiple times and can be slow or rate-limited on large token sets.
+- Orderbook activity metrics focus on top-of-book changes and may miss deeper liquidity shifts.
 - Mid-price backtest mode is a heuristic and may overstate signal quality vs. trade-driven fair value.

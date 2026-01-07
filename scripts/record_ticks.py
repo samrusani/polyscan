@@ -125,13 +125,15 @@ def _probe_trade_activity(token_ids: List[str], min_trades: int, lookback: int) 
 def _probe_orderbook_activity(
     token_ids: List[str],
     min_move: float,
+    min_changes: int,
     samples: int,
     interval_sec: float
-) -> List[str]:
+) -> tuple[List[str], Dict[str, Dict[str, float]]]:
     if ClobClient is None:
         raise RuntimeError("py-clob-client is required for orderbook probing.")
     client = ClobClient("https://clob.polymarket.com")
     mids: Dict[str, List[float]] = {token_id: [] for token_id in token_ids}
+    snapshots: Dict[str, List[Tuple[float, float, float, float]]] = {token_id: [] for token_id in token_ids}
     for _ in range(max(samples, 1)):
         for token_id in token_ids:
             try:
@@ -142,17 +144,47 @@ def _probe_orderbook_activity(
             asks = _normalize_book_levels(getattr(ob, "asks", []) or [])
             if not bids or not asks:
                 continue
-            mid = (bids[0]["price"] + asks[0]["price"]) / 2
+            best_bid = bids[0]
+            best_ask = asks[0]
+            mid = (best_bid["price"] + best_ask["price"]) / 2
             mids[token_id].append(mid)
+            snapshots[token_id].append(
+                (best_bid["price"], best_bid["size"], best_ask["price"], best_ask["size"])
+            )
         if interval_sec > 0:
             time.sleep(interval_sec)
     active: List[str] = []
+    metrics: Dict[str, Dict[str, float]] = {}
     for token_id, values in mids.items():
-        if len(values) < 2:
+        if len(values) < 2 or len(snapshots[token_id]) < 2:
             continue
-        if max(values) - min(values) >= min_move:
+        mid_range = max(values) - min(values)
+        price_changes = 0
+        size_change_hits = 0
+        size_change_sum = 0.0
+        sample_list = snapshots[token_id]
+        for idx in range(1, len(sample_list)):
+            prev_bid_p, prev_bid_s, prev_ask_p, prev_ask_s = sample_list[idx - 1]
+            bid_p, bid_s, ask_p, ask_s = sample_list[idx]
+            if bid_p != prev_bid_p:
+                price_changes += 1
+            if ask_p != prev_ask_p:
+                price_changes += 1
+            size_delta = abs(bid_s - prev_bid_s) + abs(ask_s - prev_ask_s)
+            if size_delta > 0:
+                size_change_hits += 1
+                size_change_sum += size_delta
+        change_hits = price_changes + size_change_hits
+        metrics[token_id] = {
+            "mid_range": mid_range,
+            "price_changes": float(price_changes),
+            "size_change_hits": float(size_change_hits),
+            "size_change_sum": size_change_sum,
+            "samples": float(len(values))
+        }
+        if mid_range >= min_move or change_hits >= min_changes:
             active.append(token_id)
-    return active
+    return active, metrics
 
 
 def _trade_key(trade: object) -> Tuple[str, str]:
@@ -455,6 +487,12 @@ def main() -> None:
         help="Minimum mid-price range to keep a token during orderbook probe."
     )
     parser.add_argument(
+        "--probe-ob-min-changes",
+        type=int,
+        default=1,
+        help="Minimum top-of-book changes to keep a token during orderbook probe."
+    )
+    parser.add_argument(
         "--probe-ob-samples",
         type=int,
         default=3,
@@ -465,6 +503,12 @@ def main() -> None:
         type=float,
         default=2.0,
         help="Seconds between orderbook probe samples."
+    )
+    parser.add_argument(
+        "--probe-report-top",
+        type=int,
+        default=10,
+        help="Max tokens to print in probe movement report."
     )
     args = parser.parse_args()
 
@@ -486,15 +530,36 @@ def main() -> None:
             raise SystemExit("Trade probe found no active tokens. Lower --probe-min-trades or increase --probe-lookback.")
         print(f"Probe (trades): {len(token_ids)} tokens with trades.")
     if args.probe_orderbook:
-        token_ids = _probe_orderbook_activity(
+        token_ids, moves = _probe_orderbook_activity(
             token_ids,
             args.probe_ob_min_move,
+            args.probe_ob_min_changes,
             args.probe_ob_samples,
             args.probe_ob_interval_sec
         )
         if not token_ids:
             raise SystemExit("Orderbook probe found no moving tokens. Lower --probe-ob-min-move or increase samples.")
-        print(f"Probe (orderbook): {len(token_ids)} tokens with mid moves.")
+        print(f"Probe (orderbook): {len(token_ids)} tokens with book activity.")
+        if moves:
+            ranked = sorted(
+                moves.items(),
+                key=lambda item: (
+                    item[1]["mid_range"],
+                    item[1]["price_changes"],
+                    item[1]["size_change_sum"]
+                ),
+                reverse=True
+            )
+            top = ranked[:max(args.probe_report_top, 0)]
+            if top:
+                print("Orderbook probe activity (top tokens):")
+                for token_id, stats in top:
+                    print(
+                        f"  {token_id} mid_range={stats['mid_range']:.6f} "
+                        f"price_changes={int(stats['price_changes'])} "
+                        f"size_hits={int(stats['size_change_hits'])} "
+                        f"size_sum={stats['size_change_sum']:.4f}"
+                    )
 
     if args.transport == "http":
         asyncio.run(

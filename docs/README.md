@@ -37,7 +37,8 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
      `python scripts/record_ticks.py --watchlist data/watchlist.json --max-markets 5 --ws-open-timeout 60 --ws-origin https://polymarket.com --ws-header "User-Agent: Mozilla/5.0" --out backtest_ticks.json`
    - HTTP fallback (no websocket): `python scripts/record_ticks.py --watchlist data/watchlist.json --max-markets 5 --transport http --out backtest_ticks.json`
    - Probe for active tokens first: `python scripts/record_ticks.py --watchlist data/watchlist.json --max-markets 20 --probe-trades --probe-lookback 100 --out backtest_ticks.json`
-   - Orderbook-activity probe (when trades are sparse): `python scripts/record_ticks.py --watchlist data/watchlist.json --max-markets 50 --probe-orderbook --probe-ob-min-move 0.003 --probe-ob-samples 5 --transport http --out backtest_ticks.json`
+   - Orderbook-activity probe (when trades are sparse): `python scripts/record_ticks.py --watchlist data/watchlist.json --max-markets 50 --probe-orderbook --probe-ob-min-move 0.003 --probe-ob-min-changes 1 --probe-ob-samples 5 --transport http --out backtest_ticks.json`
+     - Prints an activity report (mid-range + book changes). Use `--probe-report-top` to limit output.
 6b. Backtest recorded ticks:
    `python main_backtest.py --data backtest_ticks.json --infer-tokens --equity-out backtest_equity.csv`
 7. Backtest (multi-token):

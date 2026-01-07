@@ -58,3 +58,5 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.5.12 - Added trade probe filtering for tick recording to focus on active tokens.
 - v0.5.13 - Added orderbook-activity probe to filter tokens by mid-price movement.
 - v0.5.14 - Set backtest strategy_mode to mid in config/config.json for orderbook-only runs.
+- v0.5.15 - Added orderbook probe movement report for token activity ranking.
+- v0.5.16 - Expanded orderbook probe to include top-of-book change counts for activity filtering.
