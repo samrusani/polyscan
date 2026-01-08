@@ -62,3 +62,4 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.5.16 - Expanded orderbook probe to include top-of-book change counts for activity filtering.
 - v0.5.17 - Added an active market scanner with orderbook activity scoring.
 - v0.5.18 - Active scanner now probes YES/NO tokens and records the preferred active side.
+- v0.5.19 - Broadened active scanner defaults to sample more markets and relax activity filters.
