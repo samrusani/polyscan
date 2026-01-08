@@ -32,9 +32,14 @@ def main() -> None:
 
     candidate_limit = scanner_cfg.get("activity_candidate_limit", 50)
     candidates = ranked_markets[:candidate_limit] if candidate_limit else ranked_markets
-    token_ids = [m.yes_token_id for m in candidates if m.yes_token_id]
+    token_ids = []
+    for market in candidates:
+        if market.yes_token_id:
+            token_ids.append(market.yes_token_id)
+        if scanner_cfg.get("activity_probe_no_tokens", False) and market.no_token_id:
+            token_ids.append(market.no_token_id)
     if not token_ids:
-        logger.warning("No YES token IDs available for activity probing.")
+        logger.warning("No token IDs available for activity probing.")
         return
 
     min_move = float(scanner_cfg.get("activity_min_mid_range", 0.0))
@@ -58,16 +63,32 @@ def main() -> None:
 
     active_markets = []
     for market in candidates:
-        stats = metrics.get(market.yes_token_id)
+        yes_stats = metrics.get(market.yes_token_id) if market.yes_token_id else None
+        no_stats = metrics.get(market.no_token_id) if market.no_token_id else None
+        yes_score = compute_activity_score(yes_stats, price_weight, size_weight) if yes_stats else None
+        no_score = compute_activity_score(no_stats, price_weight, size_weight) if no_stats else None
+
+        preferred_side = "YES"
+        stats = yes_stats
+        score = yes_score
+        if no_score is not None and (score is None or no_score > score):
+            preferred_side = "NO"
+            stats = no_stats
+            score = no_score
+
         if not stats:
             continue
+
+        market.activity_preferred_side = preferred_side
+        market.activity_preferred_token_id = market.yes_token_id if preferred_side == "YES" else market.no_token_id
         market.activity_mid_range = stats.get("mid_range")
         market.activity_price_changes = stats.get("price_changes")
         market.activity_size_change_hits = stats.get("size_change_hits")
         market.activity_size_change_sum = stats.get("size_change_sum")
         market.activity_samples = stats.get("samples")
-        market.activity_score = compute_activity_score(stats, price_weight, size_weight)
-        if market.yes_token_id in active_tokens:
+        market.activity_score = score
+
+        if market.activity_preferred_token_id in active_tokens:
             active_markets.append(market)
 
     if not active_markets:

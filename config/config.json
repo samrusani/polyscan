@@ -29,7 +29,8 @@
     "activity_min_book_changes": 1,
     "activity_price_weight": 0.01,
     "activity_size_weight": 0.001,
-    "activity_output_path": "data/active_watchlist.json"
+    "activity_output_path": "data/active_watchlist.json",
+    "activity_probe_no_tokens": true
   },
   "strategy": {
     "fair_value_window_trades": 10,

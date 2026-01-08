@@ -27,6 +27,8 @@ class Market:
     recent_trades: Optional[int] = None
     rank_score: Optional[float] = None
     activity_score: Optional[float] = None
+    activity_preferred_side: Optional[str] = None
+    activity_preferred_token_id: Optional[str] = None
     activity_mid_range: Optional[float] = None
     activity_price_changes: Optional[float] = None
     activity_size_change_hits: Optional[float] = None

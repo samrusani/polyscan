@@ -72,6 +72,7 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
   - `activity_price_weight`: weight on price changes for activity score.
   - `activity_size_weight`: weight on size changes for activity score.
   - `activity_output_path`: output path for active watchlist.
+  - `activity_probe_no_tokens`: include NO tokens during activity probing and pick the most active side.
   - `strategy`: signal and quote parameters (tick size, aggression, taker mode)
   - `risk`: loss limits, inventory caps, and per-market throttle
   - `execution`: order sizing and slippage settings

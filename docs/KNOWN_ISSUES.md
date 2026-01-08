@@ -16,5 +16,5 @@
 - Trade probing relies on the CLOB trade endpoint and may be rate limited or return sparse data on low-activity markets.
 - Orderbook-activity probing polls orderbooks multiple times and can be slow or rate-limited on large token sets.
 - Orderbook activity metrics focus on top-of-book changes and may miss deeper liquidity shifts.
-- Active scanner probes only YES tokens by default, which may miss activity skewed to the NO side.
+- Active scanner can probe both YES and NO tokens, but activity may still be skewed by orderbook sampling lag.
 - Mid-price backtest mode is a heuristic and may overstate signal quality vs. trade-driven fair value.
