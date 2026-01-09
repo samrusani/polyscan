@@ -106,6 +106,8 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 - `backtest.trade_history_limit`: cap on stored trades for fair-value windows.
 - `backtest.strategy_mode`: `live` (trade-based fair value) or `mid` (mid-price window).
 - `backtest.mid_fair_value_window`: window size for mid-price fair value when using `strategy_mode=mid`.
+- `backtest.epsilon_override`: optional epsilon override for backtests (does not affect live).
+- `backtest.min_edge_override`: optional min-edge override for backtests (does not affect live).
 - Backtests apply `strategy.min_edge_to_trade` gating.
 Multi-token data can include:
 - `orderbooks`: list of `{token_id, book}` entries per tick.

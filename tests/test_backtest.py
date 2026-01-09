@@ -176,3 +176,91 @@ def test_backtest_fees_and_slippage_reduce_pnl():
     result_fee = run_backtest(fee_cfg, "tokenA", ticks)
     assert result_fee.fees_paid > 0
     assert result_fee.total_pnl < result_no_fee.total_pnl
+
+
+def test_backtest_epsilon_override_triggers_mid_signal():
+    ticks = [
+        {
+            "timestamp": "t1",
+            "orderbook": {
+                "token_id": "tokenA",
+                "book": {"bids": [{"price": 0.49}], "asks": [{"price": 0.51}]}
+            }
+        },
+        {
+            "timestamp": "t2",
+            "orderbook": {
+                "token_id": "tokenA",
+                "book": {"bids": [{"price": 0.50}], "asks": [{"price": 0.52}]}
+            }
+        }
+    ]
+    config = type("DummyConfig", (), {
+        "strategy": {
+            "fair_value_window_trades": 1,
+            "epsilon": 0.02,
+            "tick_size": 0.01,
+            "buy_aggression_ticks": 1,
+            "sell_offset": 1,
+            "taker_mode": False,
+            "taker_max_spread": 0.03,
+            "taker_min_edge": 0.01,
+            "min_edge_to_trade": 0.0
+        },
+        "backtest": {
+            "position_size": 10,
+            "price_mode": "mid",
+            "close_at_end": True,
+            "strategy_mode": "mid",
+            "mid_fair_value_window": 2,
+            "epsilon_override": 0.002,
+            "min_edge_override": 0.0
+        }
+    })()
+    result = run_backtest(config, "tokenA", ticks)
+    assert result.buy_yes == 1
+    assert result.total_trades == 1
+
+
+def test_backtest_min_edge_override_blocks_mid_signal():
+    ticks = [
+        {
+            "timestamp": "t1",
+            "orderbook": {
+                "token_id": "tokenA",
+                "book": {"bids": [{"price": 0.49}], "asks": [{"price": 0.51}]}
+            }
+        },
+        {
+            "timestamp": "t2",
+            "orderbook": {
+                "token_id": "tokenA",
+                "book": {"bids": [{"price": 0.50}], "asks": [{"price": 0.52}]}
+            }
+        }
+    ]
+    config = type("DummyConfig", (), {
+        "strategy": {
+            "fair_value_window_trades": 1,
+            "epsilon": 0.02,
+            "tick_size": 0.01,
+            "buy_aggression_ticks": 1,
+            "sell_offset": 1,
+            "taker_mode": False,
+            "taker_max_spread": 0.03,
+            "taker_min_edge": 0.01,
+            "min_edge_to_trade": 0.0
+        },
+        "backtest": {
+            "position_size": 10,
+            "price_mode": "mid",
+            "close_at_end": True,
+            "strategy_mode": "mid",
+            "mid_fair_value_window": 2,
+            "epsilon_override": 0.002,
+            "min_edge_override": 0.006
+        }
+    })()
+    result = run_backtest(config, "tokenA", ticks)
+    assert result.buy_yes == 0
+    assert result.total_trades == 0

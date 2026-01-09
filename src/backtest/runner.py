@@ -137,10 +137,18 @@ def run_backtest_multi(config: Config, token_ids: Iterable[str], ticks: List[Dic
     backtest_cfg = _get_config_section(config, "backtest")
     execution_cfg = _get_config_section(config, "execution")
     strategy_cfg = _get_config_section(config, "strategy")
+    strategy_cfg_override = dict(strategy_cfg)
+
+    epsilon_override = backtest_cfg.get("epsilon_override")
+    if epsilon_override is not None:
+        strategy_cfg_override["epsilon"] = float(epsilon_override)
 
     trade_history_limit = int(backtest_cfg.get("trade_history_limit", 100))
     feed = BacktestFeed(ticks, trade_history_limit=trade_history_limit)
-    strategy = Strategy(config, feed)
+    strategy_config = config
+    if epsilon_override is not None:
+        strategy_config = type("StrategyConfigView", (), {"strategy": strategy_cfg_override})()
+    strategy = Strategy(strategy_config, feed)
 
     buy_yes_total = 0
     buy_no_total = 0
@@ -159,8 +167,11 @@ def run_backtest_multi(config: Config, token_ids: Iterable[str], ticks: List[Dic
     fee_bps = float(backtest_cfg.get("fee_bps", 0.0))
     slippage_bps = float(backtest_cfg.get("slippage_bps", 0.0))
     slippage_ticks = float(backtest_cfg.get("slippage_ticks", 0.0))
-    tick_size = float(strategy_cfg.get("tick_size", 0.01))
-    min_edge_to_trade = strategy_cfg.get("min_edge_to_trade", 0.0)
+    tick_size = float(strategy_cfg_override.get("tick_size", 0.01))
+    min_edge_to_trade = strategy_cfg_override.get("min_edge_to_trade", 0.0)
+    min_edge_override = backtest_cfg.get("min_edge_override")
+    if min_edge_override is not None:
+        min_edge_to_trade = float(min_edge_override)
     strategy_mode = backtest_cfg.get("strategy_mode", "live")
     mid_window = int(backtest_cfg.get("mid_fair_value_window", 20))
 
@@ -193,7 +204,7 @@ def run_backtest_multi(config: Config, token_ids: Iterable[str], ticks: List[Dic
         for token_id in token_list:
             state = token_state[token_id]
             if strategy_mode == "mid":
-                signal, edge = _get_mid_signal(state, token_id, feed, mid_window, strategy_cfg)
+                signal, edge = _get_mid_signal(state, token_id, feed, mid_window, strategy_cfg_override)
             else:
                 details = strategy.get_signal_details(token_id)
                 signal = details["signal"]

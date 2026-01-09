@@ -74,7 +74,9 @@
     "slippage_ticks": 0.0,
     "trade_history_limit": 100,
     "strategy_mode": "live",
-    "mid_fair_value_window": 20
+    "mid_fair_value_window": 20,
+    "epsilon_override": null,
+    "min_edge_override": null
   },
   "execution": {
     "order_size_shares": 10,
