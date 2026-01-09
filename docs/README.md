@@ -52,6 +52,15 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
    - Offline backtests do not require the live websocket dependency.
 8. Backtest sweep:
    `python main_backtest.py --data backtest_sample.json --token-id tokenA --sweep backtest_sweep.example.json --sweep-out backtest_sweep.csv`
+9. Analyze account trades (public endpoints):
+   `python scripts/analyze_account_trades.py --user Account88888 --output data/account_trades_account88888.json --summary-out data/account_trades_summary.json`
+   - If no trades return, pass `--endpoint`, `--param`, `--header`, and use `--debug` for status codes.
+   - Use `--raw-out` to save the unparsed payload for inspection.
+   - For activity endpoints with offsets: `--endpoint https://data-api.polymarket.com/activity --param user=0x... --limit 25 --offset-param offset --offset-step 25`.
+   - Use `--trade-types TRADE,FILL` to filter activity types when a `type` field is present.
+   - Use `--probe-endpoints` to quickly see which candidate endpoints return data.
+   - Deep scan (polling): `python scripts/analyze_account_trades.py --user 0x... --endpoint https://data-api.polymarket.com/activity --limit 25 --offset-param offset --offset-step 25 --deep-scan --scan-iterations 120 --scan-interval-sec 60 --scan-out data/account_activity_scan.jsonl`
+   - Activity endpoints also compute win rate by settled markets using `REDEEM` entries.
 9. Plot equity curve:
    `python scripts/plot_backtest.py --equity-csv backtest_equity.csv --out backtest_equity.png`
 10. (Optional) Render interactive equity HTML:

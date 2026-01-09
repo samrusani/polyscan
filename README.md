@@ -81,6 +81,16 @@ Render an interactive HTML plot:
 python scripts/plot_backtest.py --equity-csv backtest_equity.csv --html-out backtest_equity.html
 ```
 
+### Account Trade Analysis
+Analyze a public account's trade history:
+```bash
+python scripts/analyze_account_trades.py --user Account88888 --output data/account_trades_account88888.json --summary-out data/account_trades_summary.json --debug
+```
+Deep scan activity (polls endpoint over time):
+```bash
+python scripts/analyze_account_trades.py --user 0xYOURADDRESS --endpoint https://data-api.polymarket.com/activity --limit 25 --offset-param offset --offset-step 25 --deep-scan --scan-iterations 120 --scan-interval-sec 60 --scan-out data/account_activity_scan.jsonl
+```
+
 ## Structure
 - `src/scanner`: Market discovery and ranking
 - `src/bot`: Trading logic, signals, risk engine, execution

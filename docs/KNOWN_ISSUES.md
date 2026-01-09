@@ -17,4 +17,8 @@
 - Orderbook-activity probing polls orderbooks multiple times and can be slow or rate-limited on large token sets.
 - Orderbook activity metrics focus on top-of-book changes and may miss deeper liquidity shifts.
 - Active scanner can probe both YES and NO tokens, but activity may still be skewed by orderbook sampling lag.
+- Account trade analysis depends on public endpoints, which may require different query params per API.
+- Some endpoints require custom headers or non-standard base URLs; use `--debug` to inspect HTTP status codes.
+- Activity endpoints may require explicit `offset` pagination to retrieve more than the first page.
+- Deep scans poll public endpoints and may hit rate limits or stale caching.
 - Mid-price backtest mode is a heuristic and may overstate signal quality vs. trade-driven fair value.

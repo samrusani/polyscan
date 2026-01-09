@@ -64,3 +64,11 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.5.18 - Active scanner now probes YES/NO tokens and records the preferred active side.
 - v0.5.19 - Broadened active scanner defaults to sample more markets and relax activity filters.
 - v0.5.20 - Added backtest epsilon/min-edge overrides for mid-mode tuning.
+- v0.5.21 - Added account trade fetch + analysis script for public endpoints.
+- v0.5.22 - Added debug + header support to account trade fetcher with extra endpoint attempts.
+- v0.5.23 - Added offset pagination support for account trade analysis.
+- v0.5.24 - Added raw payload export option for account trade analysis.
+- v0.5.25 - Added activity parsing improvements and trade-type filtering for account analysis.
+- v0.5.26 - Added activity-level win-rate summary based on REDEEM entries.
+- v0.5.27 - Added candidate endpoint probe mode for account trade analysis.
+- v0.5.28 - Added deep scan polling mode for account activity history.
