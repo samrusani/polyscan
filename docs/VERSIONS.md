@@ -92,3 +92,4 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.5.46 - Added near-arb report for lowest sum-of-asks markets.
 - v0.5.47 - Added near-arb time-series logging for lowest sum-of-asks markets.
 - v0.5.48 - Added arb dashboard tab and depth filters for arb scans.
+- v0.5.49 - Added release notes with highlights and migration guidance for v0.5.48.

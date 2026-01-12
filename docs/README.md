@@ -206,3 +206,4 @@ Note: backtest output artifacts are gitignored by default; keep them local.
 - Roadmap: `docs/ROADMAP.md`
 - Known issues: `docs/KNOWN_ISSUES.md`
 - Version log: `docs/VERSIONS.md`
+- Release notes: `docs/RELEASE_NOTES.md`

@@ -117,5 +117,6 @@ python scripts/analyze_account_trades.py --user 0xYOURADDRESS --endpoint https:/
 - Roadmap: `docs/ROADMAP.md`
 - Known issues: `docs/KNOWN_ISSUES.md`
 - Version log: `docs/VERSIONS.md`
+- Release notes: `docs/RELEASE_NOTES.md`
 
 Documentation update rule: every change must update the docs and add a new entry in `docs/VERSIONS.md`.
