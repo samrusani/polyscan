@@ -24,11 +24,16 @@ def main() -> None:
         logger.warning("No markets found matching basic criteria.")
         return
 
-    ranker = MarketRanker(config)
-    ranked_markets = ranker.rank_markets(markets)
-    if not ranked_markets:
-        logger.warning("No markets left after ranking filters.")
-        return
+    bypass_rank_filters = scanner_cfg.get("activity_bypass_rank_filters", False)
+    if bypass_rank_filters:
+        ranked_markets = sorted(markets, key=lambda m: m.volume_usd or 0.0, reverse=True)
+        logger.info("Bypassing ranking filters for activity scan.")
+    else:
+        ranker = MarketRanker(config)
+        ranked_markets = ranker.rank_markets(markets)
+        if not ranked_markets:
+            logger.warning("No markets left after ranking filters.")
+            return
 
     candidate_limit = scanner_cfg.get("activity_candidate_limit", 50)
     candidates = ranked_markets[:candidate_limit] if candidate_limit else ranked_markets
@@ -93,6 +98,29 @@ def main() -> None:
 
     if not active_markets:
         logger.warning("Activity probe found no active markets.")
+
+    enrich_metrics = scanner_cfg.get("activity_enrich_orderbooks", True)
+    if enrich_metrics and active_markets:
+        ranker = MarketRanker(config)
+        enriched = []
+        for market in active_markets:
+            try:
+                enriched.append(ranker._fetch_market_metrics(market))
+            except Exception as exc:
+                logger.warning("Failed to enrich market %s: %s", market.id, exc)
+        active_markets = enriched or active_markets
+
+        max_active_spread = scanner_cfg.get("activity_max_spread")
+        if max_active_spread is not None:
+            filtered = []
+            for market in active_markets:
+                if market.spread is None:
+                    continue
+                if market.spread <= float(max_active_spread):
+                    filtered.append(market)
+            if not filtered:
+                logger.warning("No active markets left after spread filter.")
+            active_markets = filtered or active_markets
 
     active_markets.sort(
         key=lambda m: (

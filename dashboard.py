@@ -12,7 +12,11 @@ st.set_page_config(
     layout="wide",
 )
 
-STATE_FILE = "data/live_state.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATE_FILE = os.path.join(BASE_DIR, "data", "live_state.json")
+UPDOWN_FILE = os.path.join(BASE_DIR, "data", "updown_watchlist.json")
+ARB_FILE = os.path.join(BASE_DIR, "data", "arb_watchlist.json")
+ARB_LOG_FILE = os.path.join(BASE_DIR, "data", "arb_near_arb_log.jsonl")
 
 @st.cache_data(ttl=2)
 def load_state():
@@ -23,6 +27,50 @@ def load_state():
         return None
     except Exception as e:
         return {"error": str(e)}
+
+@st.cache_data(ttl=10)
+def load_updown_watchlist(path: str):
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        return {"error": str(e)}
+
+@st.cache_data(ttl=10)
+def load_arb_watchlist(path: str):
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@st.cache_data(ttl=10)
+def load_arb_log(path: str):
+    try:
+        with open(path, "r") as f:
+            lines = [json.loads(line) for line in f if line.strip()]
+        return lines
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        return {"error": str(e)}
+
+def _market_url(slug: str | None) -> str | None:
+    if not slug:
+        return None
+    return f"https://polymarket.com/market/{slug}"
+
+
+def _format_question_link(question: str | None, url: str | None) -> str:
+    text = question or "Market"
+    if not url:
+        return text
+    return f'<a href="{url}" target="_blank">{text}</a>'
 
 def main():
     st.title("Polymarket Bot Dashboard 🤖")
@@ -82,8 +130,18 @@ def main():
             st.warning(f"Order cache refresh is stale: {cache_age:.1f}s since last refresh.")
 
     # Tabs
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
-        ["📊 Positions", "⏳ Open Orders", "📈 Market", "🧪 Strategy", "📉 Backtest", "📜 Trades", "🔍 Raw Data"]
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
+        [
+            "📊 Positions",
+            "⏳ Open Orders",
+            "📈 Market",
+            "🧭 Up/Down",
+            "⚖️ Arb",
+            "🧪 Strategy",
+            "📉 Backtest",
+            "📜 Trades",
+            "🔍 Raw Data"
+        ]
     )
 
     with tab1:
@@ -152,6 +210,152 @@ def main():
             st.info("No market data yet.")
 
     with tab4:
+        st.subheader("Up/Down Watchlist")
+        updown_path = st.text_input("Up/Down Watchlist Path", value=UPDOWN_FILE)
+        if not updown_path:
+            st.info("Provide a watchlist path to display up/down markets.")
+        elif not os.path.exists(updown_path):
+            st.info("Up/down watchlist not found.")
+        else:
+            updown = load_updown_watchlist(updown_path)
+            if not updown:
+                st.info("Up/down watchlist is empty.")
+            elif "error" in updown:
+                st.error(f"Error reading up/down watchlist: {updown['error']}")
+            else:
+                generated_at = updown.get("generated_at", "unknown")
+                markets = updown.get("markets", [])
+                st.caption(f"Generated at: {generated_at} | Markets: {len(markets)}")
+
+                model_assets = updown.get("model", {}).get("assets", {})
+                if model_assets:
+                    df_assets = pd.DataFrame(
+                        [
+                            {
+                                "asset": asset,
+                                "spot_price": stats.get("spot_price"),
+                                "return_samples": stats.get("return_samples"),
+                                "return_mean": stats.get("return_mean"),
+                                "return_stdev": stats.get("return_stdev")
+                            }
+                            for asset, stats in model_assets.items()
+                        ]
+                    )
+                    st.dataframe(df_assets)
+
+                if markets:
+                    df_updown = pd.DataFrame(markets)
+                    if "slug" in df_updown.columns:
+                        df_updown["market_url"] = df_updown["slug"].apply(_market_url)
+                    else:
+                        df_updown["market_url"] = None
+                    df_updown["question"] = df_updown.apply(
+                        lambda row: _format_question_link(row.get("question"), row.get("market_url")),
+                        axis=1
+                    )
+                    cols = [
+                        "asset_symbol",
+                        "question",
+                        "model_prob_up",
+                        "model_prob_down",
+                        "mid_up",
+                        "mid_down",
+                        "edge_up",
+                        "edge_down",
+                        "edge_best",
+                        "recommended_side"
+                    ]
+                    for col in cols:
+                        if col not in df_updown.columns:
+                            df_updown[col] = None
+                    df_view = df_updown[cols].copy()
+                    numeric_cols = [
+                        "model_prob_up",
+                        "model_prob_down",
+                        "mid_up",
+                        "mid_down",
+                        "edge_up",
+                        "edge_down",
+                        "edge_best"
+                    ]
+                    for col in numeric_cols:
+                        df_view[col] = df_view[col].map(
+                            lambda x: f"{x:.3f}" if isinstance(x, (int, float)) else x
+                        )
+                    st.markdown(df_view.to_html(escape=False, index=False), unsafe_allow_html=True)
+                else:
+                    st.info("No up/down markets met the current edge threshold.")
+
+    with tab5:
+        st.subheader("Arb Monitor")
+        arb_path = st.text_input("Arb Watchlist Path", value=ARB_FILE)
+        if not arb_path:
+            st.info("Provide an arb watchlist path.")
+        elif not os.path.exists(arb_path):
+            st.info("Arb watchlist not found.")
+        else:
+            arb = load_arb_watchlist(arb_path)
+            if not arb:
+                st.info("Arb watchlist is empty.")
+            elif "error" in arb:
+                st.error(f"Error reading arb watchlist: {arb['error']}")
+            else:
+                generated_at = arb.get("generated_at", "unknown")
+                true_arbs = len(arb.get("markets") or [])
+                near = arb.get("near_arb") or []
+                st.caption(f"Generated at: {generated_at} | True arbs: {true_arbs} | Near-arb: {len(near)}")
+
+                if near:
+                    df_near = pd.DataFrame(near)
+                    cols = [
+                        "question",
+                        "sum_asks",
+                        "edge_buy_both",
+                        "best_ask_yes",
+                        "best_ask_yes_size",
+                        "best_ask_no",
+                        "best_ask_no_size"
+                    ]
+                    for col in cols:
+                        if col not in df_near.columns:
+                            df_near[col] = None
+                    df_view = df_near[cols].copy()
+                    for col in ["sum_asks", "edge_buy_both", "best_ask_yes", "best_ask_no"]:
+                        df_view[col] = df_view[col].map(
+                            lambda x: f"{x:.3f}" if isinstance(x, (int, float)) else x
+                        )
+                    st.dataframe(df_view)
+                else:
+                    st.info("No near-arb entries in this run.")
+
+        log_path = st.text_input("Near-Arb Log Path", value=ARB_LOG_FILE)
+        if log_path and os.path.exists(log_path):
+            log_entries = load_arb_log(log_path)
+            if log_entries and "error" not in log_entries:
+                rows = []
+                for entry in log_entries:
+                    ts = entry.get("timestamp")
+                    top = entry.get("near_arb_top") or []
+                    sums = [t.get("sum_asks") for t in top if t.get("sum_asks") is not None]
+                    edges = [t.get("edge_buy_both") for t in top if t.get("edge_buy_both") is not None]
+                    if not sums:
+                        continue
+                    rows.append({
+                        "timestamp": ts,
+                        "best_sum_asks": min(sums),
+                        "best_edge": max(edges) if edges else None
+                    })
+                if rows:
+                    df_log = pd.DataFrame(rows)
+                    df_log["timestamp"] = pd.to_datetime(df_log["timestamp"], errors="coerce")
+                    df_log = df_log.dropna(subset=["timestamp"]).sort_values("timestamp")
+                    st.line_chart(df_log.set_index("timestamp")[["best_sum_asks", "best_edge"]])
+            elif isinstance(log_entries, dict) and "error" in log_entries:
+                st.error(f"Error reading near-arb log: {log_entries['error']}")
+        else:
+            st.info("Near-arb log not found.")
+
+    with tab6:
         st.subheader("Strategy Stats")
         stats = state.get("strategy_stats", {})
         if stats:
@@ -207,7 +411,7 @@ def main():
             with col_l:
                 st.metric("Order Cache Size", cache_size)
 
-    with tab5:
+    with tab7:
         st.subheader("Backtest Equity")
         default_path = "backtest_equity.csv"
         path = st.text_input("Equity CSV Path", value=default_path)
@@ -226,7 +430,7 @@ def main():
             except Exception as e:
                 st.error(f"Failed to read equity CSV: {e}")
 
-    with tab6:
+    with tab8:
         st.subheader("Trade History")
         trades = state.get("recent_trades", [])
         if trades:
@@ -237,7 +441,7 @@ def main():
         else:
             st.info("No trades executed yet.")
 
-    with tab7:
+    with tab9:
         st.json(state)
 
     # Auto-refresh logic (Moved to end to allow rendering first)

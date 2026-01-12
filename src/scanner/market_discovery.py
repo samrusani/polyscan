@@ -34,6 +34,8 @@ class Market:
     activity_size_change_hits: Optional[float] = None
     activity_size_change_sum: Optional[float] = None
     activity_samples: Optional[float] = None
+    recent_trade_ts: Optional[float] = None
+    recent_trade_age_sec: Optional[float] = None
 
 class MarketDiscovery:
     BASE_URL = "https://gamma-api.polymarket.com/events" # Gamma usually returns events which contain markets
@@ -44,6 +46,15 @@ class MarketDiscovery:
         self.config = config
         self.min_volume = config.get("asset_filter", {}).get("min_volume_usd", 1000)
         self.max_duration_hours = config.get("asset_filter", {}).get("max_duration_hours", 24)
+        self.exclude_range_markets = config.get("asset_filter", {}).get("exclude_range_markets", False)
+
+    @staticmethod
+    def _is_range_market(question: str) -> bool:
+        lowered = question.lower()
+        if "between" in lowered or "range" in lowered or "within" in lowered:
+            return True
+        import re
+        return re.search(r"from\s+\$?\d.*\s+to\s+\$?\d", lowered) is not None
 
     @staticmethod
     def _normalize_outcome_name(outcome: object) -> str:
@@ -171,10 +182,15 @@ class MarketDiscovery:
                 if not yes_token_id or not no_token_id:
                     logger.info(f"Dropped {item.get('id')}: Unable to map YES/NO tokens")
                     continue
+
+                question = item.get("question", "Unknown")
+                if self.exclude_range_markets and self._is_range_market(str(question)):
+                    logger.info(f"Dropped {item.get('id')}: Range-style question")
+                    continue
                 
                 market = Market(
                     id=item.get("conditionId") or item.get("id"), # prefer conditionID for uniqueness or just ID
-                    question=item.get("question", "Unknown"),
+                    question=question,
                     slug=item.get("slug", ""),
                     end_date=end_date,
                     volume_usd=vol,

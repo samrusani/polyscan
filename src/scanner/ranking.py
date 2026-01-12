@@ -83,11 +83,14 @@ class MarketRanker:
                         0.0, (market.end_date - datetime.now(tz)).total_seconds()
                     )
 
-                recent_trades, volatility = self._fetch_recent_trades(token_id)
+                recent_trades, volatility, last_trade_ts = self._fetch_recent_trades(token_id)
                 if recent_trades is not None:
                     market.recent_trades = recent_trades
                 if volatility is not None:
                     market.volatility = volatility
+                if last_trade_ts is not None:
+                    market.recent_trade_ts = last_trade_ts
+                    market.recent_trade_age_sec = max(0.0, time.time() - last_trade_ts)
                 return market
 
             except Exception as e:
@@ -98,7 +101,7 @@ class MarketRanker:
         
         raise last_exception
 
-    def _fetch_recent_trades(self, token_id: str) -> tuple[Optional[int], Optional[float]]:
+    def _fetch_recent_trades(self, token_id: str) -> tuple[Optional[int], Optional[float], Optional[float]]:
         limit = self.scanner_config.get("recent_trades_lookback", 50)
         trades = None
 
@@ -114,15 +117,16 @@ class MarketRanker:
                 trades = None
 
         if trades is None:
-            return None, None
+            return None, None, None
 
         if isinstance(trades, dict):
             trades = trades.get("data") or trades.get("trades") or []
 
         if not isinstance(trades, list):
-            return None, None
+            return None, None, None
 
         prices = []
+        last_ts = None
         for trade in trades:
             if not isinstance(trade, dict):
                 continue
@@ -132,12 +136,24 @@ class MarketRanker:
             except (TypeError, ValueError):
                 continue
             prices.append(price)
+            ts = trade.get("timestamp") or trade.get("createdAt") or trade.get("created_at")
+            if ts is None:
+                continue
+            try:
+                if isinstance(ts, (int, float)):
+                    ts_value = float(ts)
+                else:
+                    ts_value = datetime.fromisoformat(str(ts).replace("Z", "+00:00")).timestamp()
+            except (TypeError, ValueError):
+                continue
+            if last_ts is None or ts_value > last_ts:
+                last_ts = ts_value
 
         if not prices:
-            return 0, None
+            return 0, None, last_ts
 
         volatility = statistics.pstdev(prices) if len(prices) > 1 else 0.0
-        return len(prices), volatility
+        return len(prices), volatility, last_ts
 
     def _passes_filters(self, market: Market) -> bool:
         if market.spread is None: 
@@ -159,6 +175,14 @@ class MarketRanker:
             if market.recent_trades < min_recent_trades:
                 logger.info(
                     f"Market {market.id} filtered: Recent trades {market.recent_trades} < {min_recent_trades}"
+                )
+                return False
+
+        max_trade_age = self.scanner_config.get("recent_trade_max_age_sec")
+        if max_trade_age is not None and market.recent_trade_age_sec is not None:
+            if market.recent_trade_age_sec > max_trade_age:
+                logger.info(
+                    f"Market {market.id} filtered: Last trade age {market.recent_trade_age_sec:.0f}s > {max_trade_age}"
                 )
                 return False
             
@@ -200,6 +224,17 @@ class MarketRanker:
         weight_volatility = self.scanner_config.get("weight_volatility", 0.1)
         weight_time = self.scanner_config.get("weight_time_to_settlement", 0.1)
 
+        near_window = self.scanner_config.get("near_settlement_window_sec", 0)
+        near_boost = self.scanner_config.get("near_settlement_score_boost", 0.0)
+        near_score = 0.0
+        if (
+            near_window
+            and near_boost
+            and market.time_to_settlement_sec is not None
+            and market.time_to_settlement_sec <= near_window
+        ):
+            near_score = near_boost
+
         market.rank_score = (
             spread_score * weight_spread
             + volume_score * weight_volume
@@ -207,4 +242,5 @@ class MarketRanker:
             + trades_score * weight_trades
             + volatility_score * weight_volatility
             + time_score * weight_time
+            + near_score
         )

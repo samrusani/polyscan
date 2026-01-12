@@ -33,12 +33,28 @@ Run the active market scanner (orderbook activity probe) to generate `data/activ
 ```bash
 python main_active_scanner.py
 ```
+Run the up/down fair value scanner for BTC/ETH/SOL/XRP markets (includes YES/NO thresholds):
+```bash
+python main_updown_scanner.py
+```
+Run the YES/NO arbitrage scanner (sum of asks below $1):
+```bash
+python main_arb_scanner.py
+```
 
 ### Bot (Paper Mode)
 Run the bot in paper trading mode:
 ```bash
 python main_bot.py
 ```
+
+### Dashboard
+```bash
+streamlit run dashboard.py
+```
+The “Up/Down” tab reads `data/updown_watchlist.json` for model edges.
+Questions in the Up/Down tab link to the market page for manual entry.
+The “Arb” tab shows near-arb snapshots and a time-series of sum-of-asks.
 
 ### Bot (Live Mode)
 **WARNING**: Real funds at risk.

@@ -72,3 +72,23 @@ All changes are recorded in chronological order. Append new entries to the end.
 - v0.5.26 - Added activity-level win-rate summary based on REDEEM entries.
 - v0.5.27 - Added candidate endpoint probe mode for account trade analysis.
 - v0.5.28 - Added deep scan polling mode for account activity history.
+- v0.5.29 - Added up/down fair value scanner using external spot prices and model-based edges.
+- v0.5.30 - Added up/down watchlist visibility to the dashboard.
+- v0.5.31 - Linked up/down questions to Polymarket market pages in the dashboard.
+- v0.5.32 - Added SOL/XRP support for up/down scans and widened scan defaults.
+- v0.5.33 - Added YES/NO threshold mapping to the up/down scanner using question heuristics.
+- v0.5.34 - Made dashboard data paths repo-relative for consistent up/down watchlist display.
+- v0.5.35 - Fixed up/down question parsing regex so YES/NO threshold mapping works reliably.
+- v0.5.36 - Expanded up/down scan window to 30 days to capture longer-dated SOL/XRP markets.
+- v0.5.37 - Added range-market filtering, recent trade freshness gating, and near-expiry scoring boost.
+- v0.5.38 - Tightened scanner defaults (max spread/min depth) and routed active scan output to watchlist.
+- v0.5.39 - Loosened active scanner probe defaults to capture more markets.
+- v0.5.40 - Added option to bypass rank filters during active scanning.
+- v0.5.41 - Added optional orderbook enrichment for activity-selected markets.
+- v0.5.42 - Added activity max-spread filter after orderbook enrichment.
+- v0.5.43 - Added YES/NO arbitrage scanner for sum-of-asks opportunities.
+- v0.5.44 - Loosened arb scanner defaults for discovery (zero fee/min edge).
+- v0.5.45 - Expanded arb scanner search scope (min volume 0, fetch limit 2000).
+- v0.5.46 - Added near-arb report for lowest sum-of-asks markets.
+- v0.5.47 - Added near-arb time-series logging for lowest sum-of-asks markets.
+- v0.5.48 - Added arb dashboard tab and depth filters for arb scans.

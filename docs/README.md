@@ -14,6 +14,7 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 ## System Overview
 - Scanner pipeline: Gamma API -> filter -> CLOB order book metrics -> ranked watchlist (`data/watchlist.json`) with explicit `yes_token_id`/`no_token_id`.
 - Active scanner pipeline: ranked candidates -> orderbook activity probe -> active watchlist (`data/active_watchlist.json`).
+- Up/down scanner pipeline: Gamma API -> up/down + yes/no threshold filter -> spot price model -> fair-value watchlist (`data/updown_watchlist.json`).
 - Bot pipeline: watchlist -> websocket feed -> strategy -> risk checks -> executor -> portfolio -> live state export (`data/live_state.json`).
 - Dashboard: Streamlit app reading `data/live_state.json` for PnL, positions, orders, market snapshots, strategy stats, and backtest equity.
 - Backtest: offline runner replays tick data to evaluate strategy signals.
@@ -29,11 +30,25 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 3a. Run active market scanner:
    `python main_active_scanner.py`
    - Uses orderbook activity probing to select the most active markets.
-   - Set `scanner.activity_output_path` to `data/watchlist.json` to use it directly with the bot.
+   - Defaults to writing `data/watchlist.json` for direct bot use.
+3b. Run up/down scanner:
+   `python main_updown_scanner.py`
+   - Uses spot price returns to estimate fair value for up/down and YES/NO threshold markets.
+   - Outputs `data/updown_watchlist.json` with model probabilities and edges.
+   - If it returns empty, lower `updown_scanner.min_edge` or increase `updown_scanner.fetch_limit`.
+3c. Run arbitrage scanner:
+   `python main_arb_scanner.py`
+   - Looks for YES+NO best-ask sums below $1 minus fees.
+   - Outputs `data/arb_watchlist.json` with edge estimates.
+   - Includes a `near_arb` list with the lowest sum-of-asks when no true arb exists.
+   - Appends a JSONL time-series log (`arb_near_arb_log.jsonl`) of the lowest sums.
 4. Run bot (paper mode default):
    `python main_bot.py`
 5. Dashboard:
    `streamlit run dashboard.py`
+   - The “Up/Down” tab reads `data/updown_watchlist.json` for model edges and links questions to the market page.
+   - Default paths resolve relative to the repo, so you can run the dashboard from another directory.
+   - The “Arb” tab shows near-arb snapshots and a time-series of best sum-of-asks.
 6. Backtest (offline):
    `python main_backtest.py --data backtest_sample.json --token-id tokenA --trades-out backtest_trades.json --trades-csv backtest_trades.csv --equity-out backtest_equity.csv`
 6a. Record live ticks:
@@ -69,22 +84,41 @@ Polyscan is a Polymarket scanner and market-making bot for short-duration binary
 ## Configuration
 - `config/config.json`
   - `asset_filter`: market discovery filters
+  - `asset_filter.exclude_range_markets`: drop "between/within" range markets during discovery.
 - `scanner`: ranking and selection filters (weights, recent trades, volatility, time-to-settlement)
+  - `max_spread`: maximum allowable bid/ask spread (defaults to 0.10 for tradable books).
+  - `min_depth_near_mid`: minimum USD depth around mid (defaults to 200).
   - `volatility_close_window_sec`: ensure volatility score floor for near-settlement markets.
   - `volatility_close_floor`: minimum volatility score applied when inside the close window.
+  - `recent_trade_max_age_sec`: filter markets that haven't traded recently.
+  - `near_settlement_window_sec`: window for extra scoring boost close to settlement.
+  - `near_settlement_score_boost`: additive score for near-settlement markets.
   - `activity_candidate_limit`: number of ranked markets to probe for activity.
   - `activity_top_n`: number of active markets to keep after probing.
-  - `activity_sample_count`: samples per market during the activity probe.
-  - `activity_sample_interval_sec`: seconds between activity probe samples.
+  - `activity_sample_count`: samples per market during the activity probe (default 3).
+  - `activity_sample_interval_sec`: seconds between activity probe samples (default 1).
   - `activity_min_mid_range`: minimum mid-range required to pass the probe.
-  - `activity_min_book_changes`: minimum top-of-book changes required to pass.
+  - `activity_min_book_changes`: minimum top-of-book changes required to pass (default 0).
   - `activity_price_weight`: weight on price changes for activity score.
   - `activity_size_weight`: weight on size changes for activity score.
-  - `activity_output_path`: output path for active watchlist.
+  - `activity_max_spread`: drop activity-selected markets with spreads above this threshold.
+  - `activity_output_path`: output path for active watchlist (defaults to `data/watchlist.json`).
   - `activity_probe_no_tokens`: include NO tokens during activity probing and pick the most active side.
+  - `activity_bypass_rank_filters`: skip rank filters and probe discovery markets directly.
+  - `activity_enrich_orderbooks`: fetch spread/depth metrics for the active list after probing.
   - `strategy`: signal and quote parameters (tick size, aggression, taker mode)
   - `risk`: loss limits, inventory caps, and per-market throttle
   - `execution`: order sizing and slippage settings
+  - `price_feed`: spot price provider selection (binance/coinbase) and lookback window.
+  - `updown_scanner`: asset symbols (BTC/ETH/SOL/XRP), volume/duration filters, min-edge threshold, output path, plus YES/NO threshold mapping.
+  - Defaults now allow up to 30-day settlement windows for SOL/XRP.
+  - `arb_scanner`: filters and fee buffers for YES/NO sum-of-asks arbitrage (defaults scan broader volume/limit).
+  - `arb_scanner.near_arb_limit`: number of closest sum-of-asks markets to include in the report.
+  - `arb_scanner.near_arb_log_path`: optional JSONL log path for near-arb snapshots.
+  - `arb_scanner.near_arb_log_top_n`: number of near-arb entries to log per run.
+  - `arb_scanner.min_ask_size`: minimum ask size required to include a market.
+  - `arb_scanner.min_ask_notional`: minimum ask notional required per side.
+  - Defaults use zero fee buffer/min edge for discovery; tighten before trading.
 - Live trading requires environment variables (see `.env.example` and root README).
 
 ## Strategy Controls
@@ -139,6 +173,9 @@ Recorded tick files use `orderbooks` + `trades` at a snapshot interval.
 ## Data Artifacts
 - `data/watchlist.json`: output from scanner (includes `yes_token_id`/`no_token_id`)
 - `data/active_watchlist.json`: output from active market scanner
+- `data/updown_watchlist.json`: output from up/down fair value scanner
+- `data/arb_watchlist.json`: output from arbitrage scanner
+- `data/arb_near_arb_log.jsonl`: time-series log of near-arb snapshots
 - `data/live_state.json`: runtime state for dashboard
 - `data/session_*.csv`: session trade exports
 - `logs/bot.jsonl`: structured logs

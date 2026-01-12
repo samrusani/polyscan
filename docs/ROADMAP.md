@@ -34,3 +34,7 @@
 - Added backtest fees/slippage modeling, multi-token support, and parameter sweeps.
 - Added a live tick recorder script for backtest data capture.
 - Added an active market scanner with orderbook activity probing.
+- Added an up/down fair value scanner powered by external spot price feeds.
+- Added an up/down dashboard tab for model edges and watchlist review.
+- Added a YES/NO arbitrage scanner to detect sum-of-asks opportunities.
+- Added an arb dashboard tab and near-arb time-series logging.

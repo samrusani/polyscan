@@ -34,5 +34,17 @@ class Config:
     def execution(self) -> Dict[str, Any]:
         return self._data.get("execution", {})
 
+    @property
+    def price_feed(self) -> Dict[str, Any]:
+        return self._data.get("price_feed", {})
+
+    @property
+    def updown_scanner(self) -> Dict[str, Any]:
+        return self._data.get("updown_scanner", {})
+
+    @property
+    def arb_scanner(self) -> Dict[str, Any]:
+        return self._data.get("arb_scanner", {})
+
 def load_config() -> Config:
     return Config()

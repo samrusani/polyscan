@@ -4,6 +4,7 @@
 - Risk halts in live mode cancel orders but do not guarantee position flattening without an execution-side close.
 - Paper simulation can reprocess trades if the feed truncates the trade list (last 100), which may still overfill in rare cases.
 - Recent trade and volatility metrics depend on the CLOB trade endpoint; if unavailable, those fields remain unset and trade-based filters are skipped.
+- Some trade payloads omit timestamps, so recent-trade-age filters may not apply for those markets.
 - Signal evaluation stats use mid-price movement after a fixed delay; they do not account for actual fills or settlement outcomes.
 - Live open-order cache may drift if the CLOB API is unavailable during refresh; the next successful refresh will correct it.
 - Live order retries are not idempotent; if a request succeeds but the response is lost, a retry can create a duplicate order.
@@ -17,6 +18,13 @@
 - Orderbook-activity probing polls orderbooks multiple times and can be slow or rate-limited on large token sets.
 - Orderbook activity metrics focus on top-of-book changes and may miss deeper liquidity shifts.
 - Active scanner can probe both YES and NO tokens, but activity may still be skewed by orderbook sampling lag.
+- Up/down fair value model assumes log-normal spot returns; settlement/oracle prices can diverge from the spot feed.
+- Up/down scanner only detects markets with explicit up/down outcomes; yes/no phrasing can be skipped.
+- Spot price providers can rate-limit or return sparse candles, causing the up/down scanner to skip assets.
+- YES/NO threshold markets are mapped to up/down using keyword + target/spot heuristics and can be misclassified.
+- Range markets (e.g., "between $X and $Y") are excluded from up/down scans by default.
+- Arb scan uses top-of-book prices; thin liquidity can make sum-of-asks look profitable while size is tiny.
+- Near-arb logs can grow over time; rotate or delete `data/arb_near_arb_log.jsonl` if needed.
 - Account trade analysis depends on public endpoints, which may require different query params per API.
 - Some endpoints require custom headers or non-standard base URLs; use `--debug` to inspect HTTP status codes.
 - Activity endpoints may require explicit `offset` pagination to retrieve more than the first page.

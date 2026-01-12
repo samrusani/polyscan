@@ -2,14 +2,18 @@
   "mode": "paper",
   "asset_filter": {
     "min_volume_usd": 5000,
-    "max_duration_hours": 720
+    "max_duration_hours": 720,
+    "exclude_range_markets": true
   },
   "scanner": {
     "top_n": 10,
     "min_recent_trades": 1,
-    "max_spread": 0.99,
-    "min_depth_near_mid": 0,
+    "recent_trade_max_age_sec": 3600,
+    "max_spread": 0.10,
+    "min_depth_near_mid": 200,
     "target_time_to_settlement_sec": 86400,
+    "near_settlement_window_sec": 21600,
+    "near_settlement_score_boost": 0.2,
     "recent_trades_lookback": 50,
     "recent_trades_target": 20,
     "volatility_target": 0.05,
@@ -23,14 +27,17 @@
     "weight_time_to_settlement": 0.1,
     "activity_candidate_limit": 200,
     "activity_top_n": 10,
-    "activity_sample_count": 12,
-    "activity_sample_interval_sec": 3,
+    "activity_sample_count": 3,
+    "activity_sample_interval_sec": 1,
     "activity_min_mid_range": 0.0,
     "activity_min_book_changes": 0,
     "activity_price_weight": 0.05,
     "activity_size_weight": 0.01,
-    "activity_output_path": "data/active_watchlist.json",
-    "activity_probe_no_tokens": true
+    "activity_max_spread": 0.2,
+    "activity_output_path": "data/watchlist.json",
+    "activity_probe_no_tokens": true,
+    "activity_bypass_rank_filters": true,
+    "activity_enrich_orderbooks": true
   },
   "strategy": {
     "fair_value_window_trades": 10,
@@ -64,6 +71,40 @@
     "min_interval_sec": 60,
     "pnl_alert_threshold_usd": 100.0,
     "stale_recon_multiplier": 3
+  },
+  "price_feed": {
+    "provider": "binance",
+    "lookback_minutes": 720,
+    "timeout_sec": 10,
+    "binance_base_url": "https://api.binance.com",
+    "coinbase_base_url": "https://api.exchange.coinbase.com"
+  },
+  "updown_scanner": {
+    "asset_symbols": ["BTC", "ETH", "SOL", "XRP"],
+    "min_volume_usd": 1000,
+    "max_duration_hours": 720,
+    "fetch_limit": 1000,
+    "max_markets": 50,
+    "min_edge": 0.01,
+    "min_return_samples": 30,
+    "probability_clamp_min": 0.01,
+    "probability_clamp_max": 0.99,
+    "output_path": "data/updown_watchlist.json"
+  },
+  "arb_scanner": {
+    "min_volume_usd": 0,
+    "max_duration_hours": 168,
+    "fetch_limit": 2000,
+    "max_markets": 50,
+    "fee_buffer": 0.0,
+    "min_edge": 0.0,
+    "exclude_range_markets": false,
+    "near_arb_limit": 20,
+    "near_arb_log_path": "data/arb_near_arb_log.jsonl",
+    "near_arb_log_top_n": 5,
+    "min_ask_size": 5,
+    "min_ask_notional": 2.0,
+    "output_path": "data/arb_watchlist.json"
   },
   "backtest": {
     "position_size": 10,
